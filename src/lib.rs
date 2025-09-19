@@ -1,26 +1,28 @@
 #![feature(trait_alias)]
 
-use std::{rc::Rc, cell::RefCell};
-
 pub mod event_handler;
 
-pub type EmCRc<Ev> = Rc<RefCell<dyn Emitter<Ev>>>;
-pub type LiCRc<Ev> = Rc<RefCell<dyn Listener<Ev>>>;
+pub type EmMutRef<'a, Ev> = &'a mut dyn Emitter<'a, Ev>;
+pub type LiMutRef<'a, Ev> = &'a mut dyn Listener<'a, Ev>;
 
-pub trait Event = PartialEq + Copy + 'static;
+pub trait Event<'a> = PartialEq + Copy + 'a;
 
-pub trait Emitter<Ev: Event> {
+// DO NOT change types of function arguments or returns
+// I have thought them through!
+pub trait Emitter<'a, Ev: Event<'a>> {
     // Cause emitter to emit events without regard
     // for context.
     // Implementation specific to each emitter.
     // May return any number of events in reaction.
-    fn emit(&self) -> &Option<Vec<Ev>>;
+    fn emit(&self) -> Option<Vec<Ev>>;
 }
 
-pub trait Listener<Ev: Event> {
+// DO NOT change types of function arguments or returns
+// I have thought them through!
+pub trait Listener<'a, Ev: Event<'a>> {
     // Return a view of of all events this listener
     // can be triggered by
-    fn triggers(&self) -> &Vec<Ev>;
+    fn triggers(&self) -> Vec<&Ev>;
 
     // Contains logic on how to behave when any trigger/s
     // are broadcast to this listener.
@@ -35,8 +37,7 @@ pub trait Listener<Ev: Event> {
 
 #[cfg(test)]
 mod tests {
-    use std::{any::Any, cell::RefCell, rc::Rc};
-    use crate::{EmCRc, LiCRc};
+    use crate::{EmMutRef, LiMutRef};
 
     use super::{event_handler::*, Emitter, Listener};
 
@@ -50,22 +51,22 @@ mod tests {
     }
 
     #[derive(Debug, Clone)]
-    struct TestEmitter<TestEvents> { 
+    pub struct TestEmitter<TestEvents> { 
         emissions: Option<Vec<TestEvents>>,
     }
 
-    impl Emitter<TestEvents> for TestEmitter<TestEvents> {
-        fn emit(&self) -> &Option<Vec<TestEvents>> {
-            &self.emissions
+    impl<'a> Emitter<'a, TestEvents> for TestEmitter<TestEvents> {
+        fn emit(&self) -> Option<Vec<TestEvents>> {
+            self.emissions.clone()
         }
     }
 
     #[derive(Debug, Clone)]
-    pub struct TestListener<TestEvents> {
-        pub triggers: Vec<TestEvents>,
+    pub struct TestListener<'a, TestEvents> {
+        pub triggers: Vec<&'a TestEvents>,
     }
 
-    impl Listener<TestEvents> for TestListener<TestEvents> {
+    impl<'a> Listener<'a, TestEvents> for TestListener<'a, TestEvents> {
         fn on_triggers(&self, triggers: Vec<&TestEvents>) -> Option<Vec<TestEvents>> {
             let mut ret = vec![];
             for &t in triggers {
@@ -80,8 +81,8 @@ mod tests {
             }
         }
 
-        fn triggers(&self) -> &Vec<TestEvents> {
-            &self.triggers
+        fn triggers(&self) -> Vec<&TestEvents> {
+            self.triggers.clone()
         }
     }
 
@@ -89,24 +90,15 @@ mod tests {
     #[test]
     fn empty_initialization() {
         let eh: EventHandler<TestEvents> = EventHandler::new(vec![], vec![], vec![]);
-        let e_v: Vec<TestEvents> = Vec::new();
-        let em_v: Vec<EmCRc<TestEvents>> = Vec::new();
-        let li_v: Vec<LiCRc<TestEvents>> = Vec::new();
 
         assert_eq!(eh.get_stack().len(), 0);
-        assert_eq!(eh.get_stack().type_id(), e_v.type_id());
-        
         assert_eq!(eh.get_emitters().len(), 0);
-        assert_eq!(eh.get_emitters().type_id(), em_v.type_id());
-
         assert_eq!(eh.get_listeners().len(), 0);
-        assert_eq!(eh.get_listeners().type_id(), li_v.type_id());
     }
 
     #[test]
     fn stack_manipulation() {
         let mut eh: EventHandler<TestEvents> = EventHandler::new(vec![], vec![], vec![]);
-        let ev: Vec<TestEvents> = Vec::new();
 
         eh.push_event(Some(TestEvents::E1));
         
@@ -118,7 +110,6 @@ mod tests {
         assert_eq!(eh.pop_next_event(), Some(TestEvents::E1));
 
         assert_eq!(eh.get_stack().len(), 0);
-        assert_eq!(eh.get_stack().type_id(), ev.type_id());
 
         eh.push_events(Some(vec![TestEvents::E1, TestEvents::E2]));
 
@@ -134,19 +125,22 @@ mod tests {
     #[test]
     fn emitter_creation_and_addition() {
         let mut eh: EventHandler<TestEvents> = EventHandler::new(vec![], vec![], vec![]);
-        let e_v: Vec<EmCRc<TestEvents>> = Vec::new();
-        let em = TestEmitter { emissions: Some(vec![TestEvents::E4(3)]) };
+        let mut em = TestEmitter { emissions: Some(vec![TestEvents::E4(3)]) };
+        let mut ems = vec![
+            TestEmitter { emissions: Some(vec![TestEvents::E1]) },
+            TestEmitter { emissions: Some(vec![TestEvents::E2]) },
+            TestEmitter { emissions: Some(vec![TestEvents::E4(5)]) },
+            TestEmitter { emissions: Some(vec![TestEvents::E1, TestEvents::E3, TestEvents::E5("Hi")]) },
+        ];
 
         assert_eq!(eh.get_emitters().len(), 0);
-        assert_eq!(eh.get_emitters().type_id(), e_v.type_id());
 
-        eh.register_emitter(Rc::new(RefCell::new(em)));
+        eh.register_emitter(&mut em);
 
         assert_eq!(eh.get_emitters().len(), 1);
-        assert_eq!(eh.get_emitters()[0].borrow().emit(), &Some(vec![TestEvents::E4(3)]));
+        assert_eq!(eh.get_emitters()[0].emit(), Some(vec![TestEvents::E4(3)]));
 
-        let ems: Vec<EmCRc<TestEvents>> = vec![Rc::new(RefCell::new(TestEmitter {emissions: Some(vec![TestEvents::E2])}))];
-        eh.register_emitters(ems);
+        eh.register_emitters(&mut ems.iter_mut().map(|e| e as EmMutRef<TestEvents>).collect());
 
         // todo: Finish test
     }
@@ -154,30 +148,40 @@ mod tests {
     #[test]
     fn listener_creation_and_addition() {
         let mut eh: EventHandler<TestEvents> = EventHandler::new(vec![], vec![], vec![]);
-        let e_v: Vec<LiCRc<TestEvents>> = Vec::new();
-        let li = TestListener { triggers: vec![TestEvents::E2] };
+        let mut li = TestListener { triggers: vec![&TestEvents::E1] };
+        let mut lis = vec![
+            TestListener { triggers: vec![&TestEvents::E1] },
+            TestListener { triggers: vec![&TestEvents::E2] },
+            TestListener { triggers: vec![&TestEvents::E4(3)] },
+            TestListener { triggers: vec![&TestEvents::E3, &TestEvents::E2, &TestEvents::E5("Hi")] },
+        ];
 
         assert_eq!(eh.get_listeners().len(), 0);
-        assert_eq!(eh.get_listeners().type_id(), e_v.type_id());
 
-        eh.register_listener(Rc::new(RefCell::new(li)));
+        eh.register_listener(&mut li);
 
         assert_eq!(eh.get_listeners().len(), 1);
-        assert!(eh.get_listeners()[0].borrow().triggers().contains(&TestEvents::E2));
+        assert!(eh.get_listeners()[0].triggers().contains(&&TestEvents::E1));
 
-        let lis: Vec<LiCRc<TestEvents>> = vec![Rc::new(RefCell::new(TestListener {triggers: vec![TestEvents::E3]}))];
-        eh.register_listeners(lis);
+        eh.register_listeners(&mut lis.iter_mut().map(|e| e as LiMutRef<TestEvents>).collect());
 
-        // todo: Finish test
+        assert_eq!(eh.get_listeners().len(), 5);
+
+        // todo: Finish Test
     }
 
     #[test]
-    fn emission() {
+    fn emit() {
         // todo
     }
 
     #[test]
-    fn listening() {
+    fn listen() {
+        // todo
+    }
+
+    #[test]
+    fn broadcast() {
         // todo
     }
 }
