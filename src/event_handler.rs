@@ -1,29 +1,35 @@
-use crate::{Emitter, Listener};
+use crate::{EmCRc, LiCRc, Event};
 
-pub struct EventHandler<Ev: PartialEq + Copy + 'static> {
+pub struct EventHandler<Ev: Event> {
     stack: Vec<Ev>,
-    emitters: Vec<Box<dyn Emitter<Ev>>>,
-    listeners: Vec<Box<dyn Listener<Ev>>>,
+    prev_event: Option<Ev>,
+    emitters: Vec<EmCRc<Ev>>,
+    listeners: Vec<LiCRc<Ev>>,
 }
 
-impl<Ev: PartialEq + Copy> EventHandler<Ev> {
-    pub fn new(stack: Option<Vec<Ev>>, emitters: Option<Vec<Box<dyn Emitter<Ev>>>>, listeners: Option<Vec<Box<dyn Listener<Ev>>>>) -> Self {
-        EventHandler { stack: stack.unwrap_or_default(), emitters: emitters.unwrap_or_default(), listeners: listeners.unwrap_or_default() }
+impl<Ev: Event> EventHandler<Ev> {
+    pub fn new(stack: Vec<Ev>, emitters: Vec<EmCRc<Ev>>, listeners: Vec<LiCRc<Ev>>) -> Self {
+        EventHandler { 
+            stack, 
+            prev_event: None, 
+            emitters,
+            listeners, 
+        }
     }
 
-    pub fn register_emitter(&mut self, emitter: Box<dyn Emitter<Ev> + 'static>) {
+    pub fn register_emitter(&mut self, emitter: EmCRc<Ev>) {
         self.emitters.push(emitter);
     }
 
-    pub fn register_listener(&mut self, listener: Box<dyn Listener<Ev> + 'static>) {
+    pub fn register_listener(&mut self, listener: LiCRc<Ev>) {
         self.listeners.push(listener);
     }
 
-    pub fn register_emitters(&mut self, emitters: Vec<Box<dyn Emitter<Ev>>>) {
+    pub fn register_emitters(&mut self, emitters: Vec<EmCRc<Ev>>) {
         self.emitters.extend(emitters);
     }
 
-    pub fn register_listeners(&mut self, listeners: Vec<Box<dyn Listener<Ev>>>) {
+    pub fn register_listeners(&mut self, listeners: Vec<LiCRc<Ev>>) {
         self.listeners.extend(listeners);
     }
 
@@ -47,11 +53,11 @@ impl<Ev: PartialEq + Copy> EventHandler<Ev> {
         &self.stack
     }
 
-    pub fn get_emitters(&self) -> &Vec<Box<dyn Emitter<Ev>>> {
+    pub fn get_emitters(&self) -> &Vec<EmCRc<Ev>> {
         &self.emitters
     }
 
-    pub fn get_listeners(&self) -> &Vec<Box<dyn Listener<Ev>>> {
+    pub fn get_listeners(&self) -> &Vec<LiCRc<Ev>> {
         &self.listeners
     }
 
