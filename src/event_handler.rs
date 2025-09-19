@@ -66,7 +66,13 @@ impl<Ev: Event> EventHandler<Ev> {
     }
 
     pub fn pop_next_event(&mut self) -> Option<Ev> {
-        self.stack.pop()
+        let ret = self.stack.pop();
+        self.prev_event = ret.clone();
+        ret
+    }
+
+    pub fn get_prev_event(&self) -> &Option<Ev> {
+        &self.prev_event
     }
 
     pub fn broadcast(&mut self, events: Vec<Ev>) {
