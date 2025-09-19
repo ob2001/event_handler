@@ -71,8 +71,9 @@ impl<Ev: Event> EventHandler<Ev> {
 
     pub fn broadcast(&mut self, events: Vec<Ev>) {
         for i in 0..self.listeners.len() {
-            let intersection: Vec<&Ev> = events.iter().filter(|e| self.listeners[i].triggers().contains(e)).collect();
-            self.push_events(self.listeners[i].on_triggers(intersection).clone());
+            let intersection: Vec<&Ev> = events.iter().filter(|e| self.listeners[i].borrow().triggers().contains(e)).collect();
+            let new_events = self.listeners[i].borrow().on_triggers(intersection);
+            self.push_events(new_events);
         }
     }
 }
