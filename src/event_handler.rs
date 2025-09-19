@@ -1,14 +1,14 @@
-use crate::{EmCRc, LiCRc, Event};
+use crate::{EmMutRef, Event, LiMutRef};
 
-pub struct EventHandler<Ev: Event> {
+pub struct EventHandler<'a, Ev: Event<'a>> {
     stack: Vec<Ev>,
     prev_event: Option<Ev>,
-    emitters: Vec<EmCRc<Ev>>,
-    listeners: Vec<LiCRc<Ev>>,
+    emitters: Vec<EmMutRef<'a, Ev>>,
+    listeners: Vec<LiMutRef<'a, Ev>>,
 }
 
-impl<Ev: Event> EventHandler<Ev> {
-    pub fn new(stack: Vec<Ev>, emitters: Vec<EmCRc<Ev>>, listeners: Vec<LiCRc<Ev>>) -> Self {
+impl<'a, Ev: Event<'a>> EventHandler<'a, Ev> {
+    pub fn new(stack: Vec<Ev>, emitters: Vec<EmMutRef<'a, Ev>>, listeners: Vec<LiMutRef<'a, Ev>>) -> Self {
         EventHandler { 
             stack, 
             prev_event: None, 
@@ -17,20 +17,18 @@ impl<Ev: Event> EventHandler<Ev> {
         }
     }
 
-    pub fn register_emitter(&mut self, emitter: EmCRc<Ev>) {
+    pub fn register_emitter(&mut self, emitter: EmMutRef<'a, Ev>) {
         self.emitters.push(emitter);
     }
 
-    pub fn register_listener(&mut self, listener: LiCRc<Ev>) {
+    pub fn register_listener(&mut self, listener: LiMutRef<'a, Ev>) {
         self.listeners.push(listener);
     }
 
-    pub fn register_emitters(&mut self, emitters: Vec<EmCRc<Ev>>) {
-        self.emitters.extend(emitters);
+    pub fn register_emitters(&mut self, emitters: &mut Vec<EmMutRef<'a, Ev>>) {
     }
 
-    pub fn register_listeners(&mut self, listeners: Vec<LiCRc<Ev>>) {
-        self.listeners.extend(listeners);
+    pub fn register_listeners(&mut self, listeners: &mut Vec<LiMutRef<'a, Ev>>) {
     }
 
     pub fn push_event(&mut self, event: Option<Ev>) {
@@ -53,11 +51,11 @@ impl<Ev: Event> EventHandler<Ev> {
         &self.stack
     }
 
-    pub fn get_emitters(&self) -> &Vec<EmCRc<Ev>> {
+    pub fn get_emitters(&self) -> &Vec<EmMutRef<'a, Ev>> {
         &self.emitters
     }
 
-    pub fn get_listeners(&self) -> &Vec<LiCRc<Ev>> {
+    pub fn get_listeners(&self) -> &Vec<LiMutRef<'a, Ev>> {
         &self.listeners
     }
 
