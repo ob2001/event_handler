@@ -1,11 +1,13 @@
 #![feature(trait_alias)]
 
+use std::fmt::Debug;
+
 pub mod event_handler;
 
 pub type EmMutRef<'a, Ev> = &'a mut dyn Emitter<'a, Ev>;
 pub type LiMutRef<'a, Ev> = &'a mut dyn Listener<'a, Ev>;
 
-pub trait Event<'a> = PartialEq + Copy + 'a;
+pub trait Event<'a> = Debug + PartialEq + Copy + 'a;
 
 // DO NOT change types of function arguments or returns
 // I have thought them through!
