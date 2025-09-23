@@ -1,55 +1,23 @@
-use crate::{EmMutRef, Event, LiMutRef};
+use std::{fmt::Debug};
+use crate::{Event, EmRC, LiRC};
 
-pub struct EventHandler<'a, Ev: Event<'a>> {
-    stack: Vec<Ev>,
-    prev_event: Option<Ev>,
-    emitters: Vec<EmMutRef<'a, Ev>>,
-    listeners: Vec<LiMutRef<'a, Ev>>,
+#[derive(Debug, Clone)]
+pub struct EventHandler<Ev: Event> {
+    stack: Vec<(EmRC<Ev>, Ev)>,
+    prev_event: Option<(EmRC<Ev>, Ev)>,
+    listeners: Vec<LiRC<Ev>>,
 }
 
-impl<'a, Ev: Event<'a>> EventHandler<'a, Ev> {
-    pub fn new(stack: Vec<Ev>, emitters: Vec<EmMutRef<'a, Ev>>, listeners: Vec<LiMutRef<'a, Ev>>) -> Self {
+impl<Ev: Event> EventHandler<Ev> {
+    pub fn new() -> Self {
         EventHandler { 
-            stack, 
-            prev_event: None, 
-            emitters,
-            listeners, 
+            stack: Vec::new(),
+            prev_event: None,
+            listeners: Vec::new()
         }
     }
 
-    pub fn register_emitter(&mut self, emitter: EmMutRef<'a, Ev>) {
-        #[cfg(debug_assertions)]
-        println!("Emitter registered");
-
-        self.emitters.push(emitter);
-    }
-
-    pub fn register_listener(&mut self, listener: LiMutRef<'a, Ev>) {
-        #[cfg(debug_assertions)]
-        println!("Listener registered");
-
-        self.listeners.push(listener);
-    }
-
-    pub fn register_emitters(&mut self, emitters: &mut Vec<EmMutRef<'a, Ev>>) {
-        while let Some(em) = emitters.pop() {
-            #[cfg(debug_assertions)]
-            println!("Emitter registered");
-
-            self.register_emitter(em);
-        }
-    }
-
-    pub fn register_listeners(&mut self, listeners: &mut Vec<LiMutRef<'a, Ev>>) {
-        while let Some(li) = listeners.pop() {
-            #[cfg(debug_assertions)]
-            println!("Listener registered");
-
-            self.register_listener(li);
-        }
-    }
-
-    pub fn push_event(&mut self, event: Option<Ev>) {
+    pub fn push_event(&mut self, event: Option<(EmRC<Ev>, Ev)>) {
         match event {
             Some(e) => {
                 #[cfg(debug_assertions)]
@@ -61,38 +29,63 @@ impl<'a, Ev: Event<'a>> EventHandler<'a, Ev> {
         }
     }
 
-    pub fn push_events(&mut self, events: Option<Vec<Ev>>) {
+    pub fn push_events(&mut self, events: Option<Vec<(EmRC<Ev>, Ev)>>) {
         match events {
-            None => {}
             Some(e) => {
                 #[cfg(debug_assertions)]
                 println!("Events pushed to stack: {:?}", e);
-
+                
                 self.stack.extend(e);
             }
+            None => {}
         }
     }
 
-    pub fn get_stack(&self) -> &Vec<Ev> {
+    pub fn get_stack(&self) -> &Vec<(EmRC<Ev>, Ev)> {
         &self.stack
     }
 
-    pub fn get_emitters(&self) -> &Vec<EmMutRef<'a, Ev>> {
-        &self.emitters
+    pub fn get_stack_events(&self) -> Vec<&Ev> {
+        self.get_stack().into_iter().map(|e| &e.1).collect()
     }
 
-    pub fn get_listeners(&self) -> &Vec<LiMutRef<'a, Ev>> {
-        &self.listeners
+    pub fn get_stack_emitters(&self) -> Vec<EmRC<Ev>> {
+        self.get_stack().into_iter().map(|e| e.0.clone()).collect()
     }
 
-    pub fn peek_next_event(&self) -> Option<&Ev> {
+    pub fn add_listener(&mut self, listener: LiRC<Ev>) {
+        self.listeners.push(listener)
+    }
+
+    pub fn get_listeners(&self) -> Vec<LiRC<Ev>> {
+        // todo
+        vec![]
+    }
+
+    pub fn peek_next(&self) -> Option<&(EmRC<Ev>, Ev)> {
         #[cfg(debug_assertions)]
         println!("Event peeked: {:?}", self.stack.first());
 
         self.stack.first()
     }
 
-    pub fn pop_next_event(&mut self) -> Option<Ev> {
+    pub fn peek_next_event(&self) -> Option<&Ev> {
+        if let Some((_, e)) = self.peek_next() {
+            Some(e)
+        } else {
+            None
+        }
+    }
+
+    pub fn peek_next_emitter(&self) -> Option<&EmRC<Ev>> {
+        if let Some((em, _)) = self.peek_next() {
+            Some(em)
+        } else {
+            None
+        }
+    }
+
+    pub fn pop_next(&mut self) -> Option<(EmRC<Ev>, Ev)> {
         let ret = self.stack.pop();
         #[cfg(debug_assertions)]
         println!("Event popped: {:?}", ret);
@@ -101,12 +94,12 @@ impl<'a, Ev: Event<'a>> EventHandler<'a, Ev> {
         ret
     }
 
-    pub fn get_prev_event(&self) -> &Option<Ev> {
+    pub fn get_prev_event(&self) -> &Option<(EmRC<Ev>, Ev)> {
         &self.prev_event
     }
 
     pub fn consume_next_event(&mut self) {
-        let next = self.pop_next_event();
+        let next = self.pop_next();
 
         match next {
             Some(e) => {
@@ -119,31 +112,20 @@ impl<'a, Ev: Event<'a>> EventHandler<'a, Ev> {
         }
     }
 
-    pub fn broadcast_event(&mut self, event: Ev) {
-        let mut new_events = vec![];
-
+    pub fn broadcast_event(&mut self, event: (EmRC<Ev>, Ev)) {
         #[cfg(debug_assertions)]
         println!("Broadcast event: {:?}", event);
 
         for li in self.get_listeners() {
-            if li.triggers().contains(&&event) {
-                new_events.extend(li.on_triggers(vec![&&event]).unwrap_or_default());
+            if li.borrow().get_triggers().contains(&&event.1) {
+                li.borrow().on_triggers(vec![&&event.1]);
             }
         }
-
-        #[cfg(debug_assertions)]
-        println!("Events generated by listeners: {:?}", new_events);
-
-        self.push_events(Some(new_events));
     }
 
-    pub fn broadcast_events(&self, events: Vec<Ev>) {
+    pub fn broadcast_events(&mut self, events: Vec<(EmRC<Ev>, Ev)>) {
         for e in events {
-            for li in self.get_listeners() {
-                if li.triggers().contains(&&e) {
-                    todo!();
-                }
-            }
+            self.broadcast_event(e);
         }
     }
 }
