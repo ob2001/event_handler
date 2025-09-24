@@ -1,7 +1,6 @@
 #![feature(trait_alias, type_alias_impl_trait)]
 
-use std::{cell::RefCell, fmt::Debug, rc::Rc};
-
+use std::{cell::RefCell, fmt::Debug, rc::Rc, sync::atomic::AtomicUsize};
 use crate::{event_handler::EventHandler};
 
 // pub type Emitter<Ev: Event> = impl IEmitter<Ev>;
@@ -43,6 +42,10 @@ pub trait IListener<Ev: Event>: Debug {
     // May return any number of events in reaction.
     fn on_triggers(&self, triggers: Vec<&Ev>);
 }
+
+pub static EHCOUNTER: AtomicUsize = AtomicUsize::new(0);
+pub static EMCOUNTER: AtomicUsize = AtomicUsize::new(0);
+pub static LICOUNTER: AtomicUsize = AtomicUsize::new(0);
 
 #[cfg(test)]
 mod tests {

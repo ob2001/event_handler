@@ -1,20 +1,49 @@
-use std::{fmt::Debug};
-use crate::{Event, EmRC, LiRC};
+use std::{fmt::Debug, rc::Rc, cell::RefCell};
+use crate::{eh_parent::EHParent, sub_event_handler::SubEventHandler, EHRc, EmRC, Event, LiRC, EHCOUNTER};
 
 #[derive(Debug, Clone)]
 pub struct EventHandler<Ev: Event> {
+    id: usize,
     stack: Vec<(EmRC<Ev>, Ev)>,
     prev_event: Option<(EmRC<Ev>, Ev)>,
     listeners: Vec<LiRC<Ev>>,
 }
 
+impl<Ev: Event> PartialEq for EventHandler<Ev> {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl<'a, T: EHParent<Ev>, Ev: Event> PartialEq<SubEventHandler<'a, T, Ev>> for EventHandler<Ev> {
+    fn eq(&self, other: &SubEventHandler<'a, T, Ev>) -> bool {
+        self.id == other.get_id()
+    }
+}
+
+impl<Ev: Event> Into<EHRc<Ev>> for EventHandler<Ev> {
+    fn into(self) -> EHRc<Ev> {
+        use std::{rc::Rc, cell::RefCell};
+        Rc::new(RefCell::new(self))
+    }
+}
+
 impl<Ev: Event> EventHandler<Ev> {
     pub fn new() -> Self {
         EventHandler { 
+            id: EHCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
             stack: Vec::new(),
             prev_event: None,
             listeners: Vec::new()
         }
+    }
+
+    pub fn new_ehrc() -> Rc<RefCell<Self>> {
+        EventHandler::new().into()
+    }
+
+    pub fn get_id(&self) -> usize {
+        self.id
     }
 
     pub fn push_event(&mut self, event: Option<(EmRC<Ev>, Ev)>) {

@@ -1,5 +1,5 @@
-use std::{fmt::Debug, time::{SystemTime, UNIX_EPOCH}};
-use crate::{Event, IListener};
+use std::{fmt::Debug};
+use crate::{Event, IListener, LiRC, LICOUNTER};
 
 #[derive(Debug, Clone)]
 pub struct DefListener<Ev: Event> {
@@ -13,9 +13,25 @@ impl<Ev: Event> PartialEq for DefListener<Ev> {
     }
 }
 
+impl<Ev: Event + 'static> Into<LiRC<Ev>> for DefListener<Ev> {
+    fn into(self) -> LiRC<Ev> {
+        use std::{rc::Rc, cell::RefCell};
+        Rc::new(RefCell::new(self))
+    }
+}
+
 impl<Ev: Event> DefListener<Ev> {
     pub fn new(triggers: Vec<Ev>) -> Self {
-        Self { triggers, id: SystemTime::now().duration_since(UNIX_EPOCH).expect("").as_millis() as usize }
+        Self { triggers, id: LICOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst) }
+    }
+    pub fn get_id(&self) -> usize {
+        self.id
+    }
+}
+
+impl<Ev: Event + 'static> DefListener<Ev> {
+    pub fn into_emli(self) -> LiRC<Ev> {
+        self.into()
     }
 }
 

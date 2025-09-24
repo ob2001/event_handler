@@ -1,10 +1,10 @@
-use std::{fmt::Debug, time::{SystemTime, UNIX_EPOCH}};
-use crate::{EHRc, Event, IEmitter};
+use std::{fmt::Debug};
+use crate::{EHRc, EmRC, Event, IEmitter, EMCOUNTER};
 
 #[derive(Debug, Clone)]
 pub struct DefEmitter<Ev: Event> {
     id: usize,
-        parents: Vec<EHRc<Ev>>,
+    parents: Vec<EHRc<Ev>>,
 }
 
 impl<Ev: Event> PartialEq for DefEmitter<Ev> {
@@ -13,9 +13,25 @@ impl<Ev: Event> PartialEq for DefEmitter<Ev> {
     }
 }
 
+impl<Ev: Event + 'static> Into<EmRC<Ev>> for DefEmitter<Ev> {
+    fn into(self) -> EmRC<Ev> {
+        use std::{rc::Rc, cell::RefCell};
+        Rc::new(RefCell::new(self))
+    }
+}
+
 impl<Ev: Event> DefEmitter<Ev> {
     pub fn new(parents: Vec<EHRc<Ev>>) -> Self {
-        Self { parents, id: SystemTime::now().duration_since(UNIX_EPOCH).expect("").as_millis() as usize }
+        Self { parents, id: EMCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst) }
+    }
+    pub fn get_id(&self) -> usize {
+        self.id
+    }
+}
+
+impl<Ev: Event + 'static> DefEmitter<Ev> {
+    pub fn into_emrc(self) -> EmRC<Ev> {
+        self.into()
     }
 }
 

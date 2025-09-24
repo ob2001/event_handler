@@ -1,26 +1,42 @@
 use std::fmt::Debug;
-use crate::{eh_parent::EHParent, EmRC, Event, LiRC};
+use crate::{eh_parent::EHParent, event_handler::EventHandler, EmRC, Event, LiRC, EHCOUNTER};
 
 // Todo
 // Event handler reporting to a parent object
 #[derive(Debug, Clone)]
-pub struct SubEventHandler<'a, T: EHParent<Ev>, Ev: Event> where 
-    LiRC<Ev>: Debug {
+pub struct SubEventHandler<'a, T: EHParent<Ev>, Ev: Event> {
+    id: usize,
     stack: Vec<(EmRC<Ev>, Ev)>,
     prev_event: Option<(EmRC<Ev>, Ev)>,
     listeners: Vec<LiRC<Ev>>,
     parents: Vec<&'a T>,
 }
 
-impl<'a, T: EHParent<Ev>, Ev: Event> SubEventHandler<'a, T, Ev> where
-    LiRC<Ev>: Debug{
+impl<'a, T: EHParent<Ev>, Ev: Event> PartialEq for SubEventHandler<'a, T, Ev> {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl<'a, T: EHParent<Ev>, Ev: Event> PartialEq<EventHandler<Ev>> for SubEventHandler<'a, T, Ev> {
+    fn eq(&self, other: &EventHandler<Ev>) -> bool {
+        self.id == other.get_id()
+    }
+}
+
+impl<'a, T: EHParent<Ev>, Ev: Event> SubEventHandler<'a, T, Ev> {
     pub fn new(parents: Vec<&'a T>) -> Self {
-        SubEventHandler { 
+        SubEventHandler {
+            id: EHCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
             stack: Vec::new(),
             prev_event: None,
             listeners: Vec::new(),
             parents
         }
+    }
+
+    pub fn get_id(&self) -> usize {
+        self.id
     }
 
     pub fn push_event(&mut self, event: Option<(EmRC<Ev>, Ev)>) {

@@ -1,22 +1,39 @@
-use std::{fmt::Debug, time::{SystemTime, UNIX_EPOCH}};
-use crate::{EHRc, Event, IEmitter, IListener};
+use std::{fmt::Debug};
+use crate::{emitter::DefEmitter, listener::DefListener, EHRc, Event, IEmitter, IListener, EMCOUNTER, LICOUNTER};
 
 #[derive(Debug, Clone)]
 pub struct DefConversant<Ev: Event> {
+    em_id: usize,
+    li_id: usize,
     parents: Vec<EHRc<Ev>>,
     triggers: Vec<Ev>,
-    id: usize
 }
 
 impl<Ev: Event> DefConversant<Ev>  {
     pub fn new(parents: Vec<EHRc<Ev>>) -> Self {
-        DefConversant { parents, triggers: Vec::new(), id: SystemTime::now().duration_since(UNIX_EPOCH).expect("").as_millis() as usize }
+        DefConversant { parents,
+            triggers: Vec::new(),
+            em_id: EMCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
+            li_id: LICOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
+        }
     }
 }
 
 impl<Ev: Event> PartialEq for DefConversant<Ev> {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+        self.em_id == other.em_id && self.li_id == other.li_id
+    }
+}
+
+impl<Ev: Event> PartialEq<DefListener<Ev>> for DefConversant<Ev> {
+    fn eq(&self, other: &DefListener<Ev>) -> bool {
+        self.li_id == other.get_id()
+    }
+}
+
+impl<Ev: Event> PartialEq<DefEmitter<Ev>> for DefConversant<Ev> {
+    fn eq(&self, other: &DefEmitter<Ev>) -> bool {
+        self.em_id == other.get_id()
     }
 }
 
