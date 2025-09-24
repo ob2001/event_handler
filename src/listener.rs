@@ -1,5 +1,18 @@
-use std::{fmt::Debug};
-use crate::{Event, IListener, LiRC, LICOUNTER};
+use std::{fmt::Debug, rc::Rc, cell::RefCell};
+use crate::prelude::*;
+
+pub trait IListener<Ev: Event>: Debug {
+    // Return a view of of all events this listener
+    // can be triggered by
+    fn get_triggers(&self) -> Vec<&Ev>;
+
+    // Contains logic on how to behave when any trigger/s
+    // are broadcast to this listener.
+    // May return any number of events in reaction.
+    fn on_triggers(&self, triggers: Vec<&Ev>);
+}
+
+pub type LiRC<Ev> = Rc<RefCell<dyn IListener<Ev>>>;
 
 #[derive(Debug, Clone)]
 pub struct DefListener<Ev: Event> {
@@ -9,7 +22,7 @@ pub struct DefListener<Ev: Event> {
 
 impl<Ev: Event> PartialEq for DefListener<Ev> {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+        self.id == other.get_id()
     }
 }
 
@@ -22,7 +35,7 @@ impl<Ev: Event + 'static> Into<LiRC<Ev>> for DefListener<Ev> {
 
 impl<Ev: Event> DefListener<Ev> {
     pub fn new(triggers: Vec<Ev>) -> Self {
-        Self { triggers, id: LICOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst) }
+        Self { triggers, id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst) }
     }
     pub fn get_id(&self) -> usize {
         self.id

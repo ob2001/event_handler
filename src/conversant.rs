@@ -1,20 +1,21 @@
 use std::{fmt::Debug};
-use crate::{emitter::DefEmitter, listener::DefListener, EHRc, Event, IEmitter, IListener, EMCOUNTER, LICOUNTER};
+use crate::prelude::*;
+use crate::{emitter::DefEmitter, listener::DefListener};
 
 #[derive(Debug, Clone)]
 pub struct DefConversant<Ev: Event> {
     em_id: usize,
     li_id: usize,
-    parents: Vec<EHRc<Ev>>,
+    handlers: Vec<EHRc<Ev>>,
     triggers: Vec<Ev>,
 }
 
 impl<Ev: Event> DefConversant<Ev>  {
-    pub fn new(parents: Vec<EHRc<Ev>>) -> Self {
-        DefConversant { parents,
+    pub fn new(handlers: Vec<EHRc<Ev>>) -> Self {
+        DefConversant { handlers,
             triggers: Vec::new(),
-            em_id: EMCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
-            li_id: LICOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
+            em_id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
+            li_id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
         }
     }
 }
@@ -42,11 +43,11 @@ impl<Ev: Event> IEmitter<Ev> for DefConversant<Ev> {
         // todo
         None
     }
-    fn add_handler(&mut self, parent: EHRc<Ev>) {
-        self.parents.push(parent);
+    fn add_handler(&mut self, handler: EHRc<Ev>) {
+        self.handlers.push(handler.clone());
     }
     fn get_handlers(&self) -> Vec<EHRc<Ev>> {
-        self.parents.clone()
+        self.handlers.clone()
     }
 }
 

@@ -1,7 +1,7 @@
 use std::fmt::Debug;
-use crate::{eh_parent::EHParent, event_handler::EventHandler, EmRC, Event, LiRC, EHCOUNTER};
+use crate::prelude::*;
+use crate::event_handler::EventHandler;
 
-// Todo
 // Event handler reporting to a parent object
 #[derive(Debug, Clone)]
 pub struct SubEventHandler<'a, T: EHParent<Ev>, Ev: Event> {
@@ -14,7 +14,7 @@ pub struct SubEventHandler<'a, T: EHParent<Ev>, Ev: Event> {
 
 impl<'a, T: EHParent<Ev>, Ev: Event> PartialEq for SubEventHandler<'a, T, Ev> {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+        self.id == other.get_id()
     }
 }
 
@@ -27,7 +27,7 @@ impl<'a, T: EHParent<Ev>, Ev: Event> PartialEq<EventHandler<Ev>> for SubEventHan
 impl<'a, T: EHParent<Ev>, Ev: Event> SubEventHandler<'a, T, Ev> {
     pub fn new(parents: Vec<&'a T>) -> Self {
         SubEventHandler {
-            id: EHCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
+            id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
             stack: Vec::new(),
             prev_event: None,
             listeners: Vec::new(),

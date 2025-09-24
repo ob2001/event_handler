@@ -1,5 +1,8 @@
 use std::{fmt::Debug, rc::Rc, cell::RefCell};
-use crate::{eh_parent::EHParent, sub_event_handler::SubEventHandler, EHRc, EmRC, Event, LiRC, EHCOUNTER};
+use crate::prelude::*;
+use crate::sub_event_handler::SubEventHandler;
+
+pub trait Event = Debug + PartialEq + Copy;
 
 #[derive(Debug, Clone)]
 pub struct EventHandler<Ev: Event> {
@@ -9,9 +12,11 @@ pub struct EventHandler<Ev: Event> {
     listeners: Vec<LiRC<Ev>>,
 }
 
+pub type EHRc<Ev> = Rc<RefCell<EventHandler<Ev>>>;
+
 impl<Ev: Event> PartialEq for EventHandler<Ev> {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+        self.id == other.get_id()
     }
 }
 
@@ -31,7 +36,7 @@ impl<Ev: Event> Into<EHRc<Ev>> for EventHandler<Ev> {
 impl<Ev: Event> EventHandler<Ev> {
     pub fn new() -> Self {
         EventHandler { 
-            id: EHCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
+            id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
             stack: Vec::new(),
             prev_event: None,
             listeners: Vec::new()

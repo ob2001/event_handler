@@ -1,17 +1,8 @@
 #![feature(trait_alias, type_alias_impl_trait)]
 
-use std::{cell::RefCell, fmt::Debug, rc::Rc, sync::atomic::AtomicUsize};
-use crate::{event_handler::EventHandler};
+use std::sync::atomic::AtomicUsize;
 
-// pub type Emitter<Ev: Event> = impl IEmitter<Ev>;
-// pub type Listener<Ev: Event> = impl IListener<Ev>;
-
-pub type Emitter<Ev> = dyn IEmitter<Ev>;
-pub type Listener<Ev> = dyn IListener<Ev>;
-
-pub type EHRc<Ev> = Rc<RefCell<EventHandler<Ev>>>;
-pub type EmRC<Ev> = Rc<RefCell<Emitter<Ev>>>;
-pub type LiRC<Ev> = Rc<RefCell<Listener<Ev>>>;
+pub mod prelude;
 
 pub mod event_handler;
 pub mod sub_event_handler;
@@ -20,36 +11,12 @@ pub mod emitter;
 pub mod listener;
 pub mod conversant;
 
-pub trait Event = Debug + PartialEq + Copy;
-
-pub trait IEmitter<Ev: Event>: Debug {
-    // Cause emitter to emit events without regard
-    // for context.
-    // Implementation specific to each emitter.
-    // May return any number of events in reaction.
-    fn emit(&self) -> Option<Vec<Ev>>;
-    fn add_handler(&mut self, parent: EHRc<Ev>);
-    fn get_handlers(&self) -> Vec<EHRc<Ev>>;
-}
-
-pub trait IListener<Ev: Event>: Debug {
-    // Return a view of of all events this listener
-    // can be triggered by
-    fn get_triggers(&self) -> Vec<&Ev>;
-
-    // Contains logic on how to behave when any trigger/s
-    // are broadcast to this listener.
-    // May return any number of events in reaction.
-    fn on_triggers(&self, triggers: Vec<&Ev>);
-}
-
-pub static EHCOUNTER: AtomicUsize = AtomicUsize::new(0);
-pub static EMCOUNTER: AtomicUsize = AtomicUsize::new(0);
-pub static LICOUNTER: AtomicUsize = AtomicUsize::new(0);
+pub static IDCOUNTER: AtomicUsize = AtomicUsize::new(0);
 
 #[cfg(test)]
 mod tests {
-    use crate::{emitter::DefEmitter, event_handler::*, listener::DefListener, IEmitter};
+    use crate::prelude::*;
+    use crate::{event_handler::EventHandler, emitter::DefEmitter, listener::DefListener};
 
     #[derive(Debug, PartialEq, Copy, Clone)]
     enum TestEvents {
