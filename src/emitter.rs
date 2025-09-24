@@ -3,8 +3,8 @@ use crate::{EHRc, Event, IEmitter};
 
 #[derive(Debug, Clone)]
 pub struct DefEmitter<Ev: Event> {
+    id: usize,
         parents: Vec<EHRc<Ev>>,
-        id: usize,
 }
 
 impl<Ev: Event> PartialEq for DefEmitter<Ev> {
@@ -24,10 +24,10 @@ impl<Ev: Event> IEmitter<Ev> for DefEmitter<Ev>  {
         // todo
         None
     }
-    fn add_parent(&mut self, parent: EHRc<Ev>) {
+    fn add_handler(&mut self, parent: EHRc<Ev>) {
         self.parents.push(parent);
     }
-    fn get_parents(&self) -> Vec<EHRc<Ev>> {
+    fn get_handlers(&self) -> Vec<EHRc<Ev>> {
         self.parents.clone()
     }
 }

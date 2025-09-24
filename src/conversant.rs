@@ -25,10 +25,10 @@ impl<Ev: Event> IEmitter<Ev> for DefConversant<Ev> {
         // todo
         None
     }
-    fn add_parent(&mut self, parent: EHRc<Ev>) {
+    fn add_handler(&mut self, parent: EHRc<Ev>) {
         self.parents.push(parent);
     }
-    fn get_parents(&self) -> Vec<EHRc<Ev>> {
+    fn get_handlers(&self) -> Vec<EHRc<Ev>> {
         self.parents.clone()
     }
 }

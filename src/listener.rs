@@ -3,8 +3,8 @@ use crate::{Event, IListener};
 
 #[derive(Debug, Clone)]
 pub struct DefListener<Ev: Event> {
-    triggers: Vec<Ev>,
     id: usize,
+    triggers: Vec<Ev>,
 }
 
 impl<Ev: Event> PartialEq for DefListener<Ev> {

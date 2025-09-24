@@ -29,8 +29,8 @@ pub trait IEmitter<Ev: Event>: Debug {
     // Implementation specific to each emitter.
     // May return any number of events in reaction.
     fn emit(&self) -> Option<Vec<Ev>>;
-    fn add_parent(&mut self, parent: EHRc<Ev>);
-    fn get_parents(&self) -> Vec<EHRc<Ev>>;
+    fn add_handler(&mut self, parent: EHRc<Ev>);
+    fn get_handlers(&self) -> Vec<EHRc<Ev>>;
 }
 
 pub trait IListener<Ev: Event>: Debug {
