@@ -16,6 +16,7 @@ pub type LiRC<Ev> = Rc<RefCell<Listener<Ev>>>;
 
 pub mod event_handler;
 pub mod sub_event_handler;
+pub mod eh_parent;
 pub mod emitter;
 pub mod listener;
 pub mod conversant;
