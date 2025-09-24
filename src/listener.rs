@@ -20,16 +20,18 @@ impl<Ev: Event> DefListener<Ev> {
 }
 
 impl<Ev: Event> IListener<Ev> for DefListener<Ev> {
-    fn dispatch(&self, trigger: &Ev) -> Option<Vec<Ev>> {
-        // todo
-        None
-    }
-    fn on_triggers(&self, triggers: Vec<&Ev>) -> Option<Vec<Ev>> {
-        // todo
-        None
+    fn on_triggers(&self, triggers: Vec<&Ev>) {
+        for t in triggers {
+            match t {
+                _ => {}
+            }
+        }
     }
     fn get_triggers(&self) -> Vec<&Ev> {
-        // todo
-        vec![]
+        let mut ret = vec![];
+        for t in &self.triggers {
+            ret.push(t);
+        }
+        ret
     }
 }

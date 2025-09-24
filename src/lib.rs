@@ -7,8 +7,8 @@ use crate::{event_handler::EventHandler};
 // pub type Emitter<Ev: Event> = impl IEmitter<Ev>;
 // pub type Listener<Ev: Event> = impl IListener<Ev>;
 
-pub type Emitter<Ev: Event> = dyn IEmitter<Ev>;
-pub type Listener<Ev: Event> = dyn IListener<Ev>;
+pub type Emitter<Ev> = dyn IEmitter<Ev>;
+pub type Listener<Ev> = dyn IListener<Ev>;
 
 pub type EHRc<Ev> = Rc<RefCell<EventHandler<Ev>>>;
 pub type EmRC<Ev> = Rc<RefCell<Emitter<Ev>>>;
@@ -40,12 +40,7 @@ pub trait IListener<Ev: Event>: Debug {
     // Contains logic on how to behave when any trigger/s
     // are broadcast to this listener.
     // May return any number of events in reaction.
-    fn on_triggers(&self, triggers: Vec<&Ev>) -> Option<Vec<Ev>>;
-
-    // Handles dispatching individual triggers to specific
-    // functionality.
-    // May return any number of events in reaction.
-    fn dispatch(&self, trigger: &Ev) -> Option<Vec<Ev>>;
+    fn on_triggers(&self, triggers: Vec<&Ev>);
 }
 
 #[cfg(test)]

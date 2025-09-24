@@ -57,9 +57,8 @@ impl<Ev: Event> EventHandler<Ev> {
         self.listeners.push(listener)
     }
 
-    pub fn get_listeners(&self) -> Vec<LiRC<Ev>> {
-        // todo
-        vec![]
+    pub fn get_listeners(&self) -> &Vec<LiRC<Ev>> {
+        &self.listeners
     }
 
     pub fn peek_next(&self) -> Option<&(EmRC<Ev>, Ev)> {

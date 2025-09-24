@@ -28,10 +28,6 @@ impl<Ev: Event> IEmitter<Ev> for DefEmitter<Ev>  {
         self.parents.push(parent);
     }
     fn get_parents(&self) -> Vec<EHRc<Ev>> {
-        let mut ret = vec![];
-        for p in &self.parents {
-            ret.push(p.clone());
-        }
-        ret
+        self.parents.clone()
     }
 }
