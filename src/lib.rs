@@ -49,7 +49,7 @@ pub static LICOUNTER: AtomicUsize = AtomicUsize::new(0);
 
 #[cfg(test)]
 mod tests {
-    use crate::event_handler::*;
+    use crate::{emitter::DefEmitter, event_handler::*, listener::DefListener, IEmitter};
 
     #[derive(Debug, PartialEq, Copy, Clone)]
     enum TestEvents {
@@ -63,9 +63,21 @@ mod tests {
     // *** Tests start here *** //
     #[test]
     fn empty_initialization() {
-        let eh: EventHandler<TestEvents> = EventHandler::new();
+        use TestEvents::*;
+        let eh1 = EventHandler::<TestEvents>::new_ehrc();
+        let eh2 = EventHandler::<TestEvents>::new_ehrc();
+        let em1 = DefEmitter::new(vec![eh1.clone()]);
+        let em2 = DefEmitter::new(vec![]);
+        let li1 = DefListener::new(vec![E1, E2, E3, E4(3), E5("Hi")]);
+        let li2 = DefListener::new(vec![]);
 
-        assert_eq!(eh.get_stack().len(), 0);
+        assert_ne!(eh1, eh2);
+        assert_ne!(em1, em2);
+        assert_ne!(li1, li2);
+
+        assert_eq!(eh1.borrow().get_stack().len(), 0);
+
+        assert_eq!(em1.get_handlers()[0], eh1);
     }
 
     #[test]
