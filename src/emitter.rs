@@ -1,5 +1,6 @@
 use std::{fmt::Debug, rc::Rc, cell::RefCell};
 use crate::prelude::*;
+use crate::IDCOUNTER;
 
 pub trait IEmitter<Ev: Event>: Debug {
     // Cause emitter to emit events without regard
@@ -9,19 +10,29 @@ pub trait IEmitter<Ev: Event>: Debug {
     fn emit(&self) -> Option<Vec<Ev>>;
     fn add_handler(&mut self, parent: EHRc<Ev>);
     fn get_handlers(&self) -> Vec<EHRc<Ev>>;
+    fn get_id(&self) -> usize;
+}
+
+impl<Ev: Event> PartialEq for dyn IEmitter<Ev> {
+    fn eq(&self, other: &Self) -> bool {
+        self.get_id() == other.get_id()
+    }
 }
 
 pub type EmRC<Ev> = Rc<RefCell<dyn IEmitter<Ev>>>;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, PartialEq)]
 pub struct DefEmitter<Ev: Event> {
     id: usize,
     handlers: Vec<EHRc<Ev>>,
 }
 
-impl<Ev: Event> PartialEq for DefEmitter<Ev> {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.get_id()
+impl<Ev: Event> Debug for DefEmitter<Ev> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DefEmitter")
+            .field("id", &self.id)
+            .field("handler ids", &self.handlers.iter().map(|h| h.borrow().get_id()).collect::<Vec<usize>>())
+            .finish()
     }
 }
 
@@ -36,8 +47,8 @@ impl<Ev: Event> DefEmitter<Ev> {
     pub fn new(handlers: Vec<EHRc<Ev>>) -> Self {
         Self { handlers, id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst) }
     }
-    pub fn get_id(&self) -> usize {
-        self.id
+    pub fn new_emrc(handlers: Vec<EHRc<Ev>>) -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Self { handlers, id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst)}))
     }
 }
 
@@ -57,5 +68,8 @@ impl<Ev: Event> IEmitter<Ev> for DefEmitter<Ev>  {
     }
     fn get_handlers(&self) -> Vec<EHRc<Ev>> {
         self.handlers.clone()
+    }
+    fn get_id(&self) -> usize {
+        self.id
     }
 }

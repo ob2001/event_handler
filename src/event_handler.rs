@@ -1,15 +1,27 @@
 use std::{fmt::Debug, rc::Rc, cell::RefCell};
 use crate::prelude::*;
-use crate::sub_event_handler::SubEventHandler;
+use crate::{IDCOUNTER, sub_event_handler::SubEventHandler};
 
 pub trait Event = Debug + PartialEq + Copy;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct EventHandler<Ev: Event> {
     id: usize,
     stack: Vec<(EmRC<Ev>, Ev)>,
     prev_event: Option<(EmRC<Ev>, Ev)>,
     listeners: Vec<LiRC<Ev>>,
+}
+
+impl<Ev: Event> Debug for EventHandler<Ev> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let prev_event_str = if self.prev_event.is_some() { &Some((self.prev_event.as_ref().unwrap().0.borrow().get_id(), self.prev_event.as_ref().unwrap().1)) } else { &None as &Option<(usize, Ev)> };
+        f.debug_struct("EventHandler")
+            .field("id", &self.id)
+            .field("stack", &self.stack.iter().map(|e| (e.0.borrow().get_id(), e.1)).collect::<Vec<(usize, Ev)>>())
+            .field("prev_event", prev_event_str)
+            .field("listeners", &self.listeners.iter().map(|l| l.borrow().get_id()).collect::<Vec<usize>>())
+            .finish()
+    }
 }
 
 pub type EHRc<Ev> = Rc<RefCell<EventHandler<Ev>>>;
@@ -20,7 +32,7 @@ impl<Ev: Event> PartialEq for EventHandler<Ev> {
     }
 }
 
-impl<'a, T: EHParent<Ev>, Ev: Event> PartialEq<SubEventHandler<'a, T, Ev>> for EventHandler<Ev> {
+impl<'a, T: EHParent<Ev> + Debug, Ev: Event> PartialEq<SubEventHandler<'a, T, Ev>> for EventHandler<Ev> {
     fn eq(&self, other: &SubEventHandler<'a, T, Ev>) -> bool {
         self.id == other.get_id()
     }
@@ -55,7 +67,7 @@ impl<Ev: Event> EventHandler<Ev> {
         match event {
             Some(e) => {
                 #[cfg(debug_assertions)]
-                println!("Event pushed to stack: {:?}", e);
+                println!("Event pushed to stack: (Emitter id: {:?}, Event: {:?})", e.0.borrow().get_id(), e.1);
 
                 self.stack.push(e)
             },
@@ -64,14 +76,10 @@ impl<Ev: Event> EventHandler<Ev> {
     }
 
     pub fn push_events(&mut self, events: Option<Vec<(EmRC<Ev>, Ev)>>) {
-        match events {
-            Some(e) => {
-                #[cfg(debug_assertions)]
-                println!("Events pushed to stack: {:?}", e);
-                
-                self.stack.extend(e);
+        if let Some(events) = events {
+            for event in events {
+                self.push_event(Some(event));
             }
-            None => {}
         }
     }
 

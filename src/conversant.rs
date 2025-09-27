@@ -1,13 +1,24 @@
 use std::{fmt::Debug};
 use crate::prelude::*;
-use crate::{emitter::DefEmitter, listener::DefListener};
+use crate::{IDCOUNTER, emitter::DefEmitter, listener::DefListener};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct DefConversant<Ev: Event> {
     em_id: usize,
     li_id: usize,
     handlers: Vec<EHRc<Ev>>,
     triggers: Vec<Ev>,
+}
+
+impl<Ev: Event> Debug for DefConversant<Ev> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DefConversant")
+            .field("em_id", &self.em_id)
+            .field("li_id", &self.li_id)
+            .field("handlers", &self.handlers.iter().map(|h| h.borrow().get_id()).collect::<Vec<usize>>())
+            .field("triggers", &self.triggers)
+            .finish()
+    }
 }
 
 impl<Ev: Event> DefConversant<Ev>  {
@@ -17,12 +28,6 @@ impl<Ev: Event> DefConversant<Ev>  {
             em_id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
             li_id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
         }
-    }
-}
-
-impl<Ev: Event> PartialEq for DefConversant<Ev> {
-    fn eq(&self, other: &Self) -> bool {
-        self.em_id == other.em_id && self.li_id == other.li_id
     }
 }
 
@@ -49,6 +54,9 @@ impl<Ev: Event> IEmitter<Ev> for DefConversant<Ev> {
     fn get_handlers(&self) -> Vec<EHRc<Ev>> {
         self.handlers.clone()
     }
+    fn get_id(&self) -> usize {
+        self.em_id
+    }
 }
 
 impl<Ev: Event> IListener<Ev> for DefConversant<Ev>  {
@@ -65,5 +73,8 @@ impl<Ev: Event> IListener<Ev> for DefConversant<Ev>  {
                 _ => {}
             }
         }
+    }
+    fn get_id(&self) -> usize {
+        self.li_id
     }
 }

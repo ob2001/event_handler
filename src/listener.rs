@@ -1,5 +1,6 @@
 use std::{fmt::Debug, rc::Rc, cell::RefCell};
 use crate::prelude::*;
+use crate::IDCOUNTER;
 
 pub trait IListener<Ev: Event>: Debug {
     // Return a view of of all events this listener
@@ -10,19 +11,29 @@ pub trait IListener<Ev: Event>: Debug {
     // are broadcast to this listener.
     // May return any number of events in reaction.
     fn on_triggers(&self, triggers: Vec<&Ev>);
+    fn get_id(&self) -> usize;
+}
+
+impl<Ev: Event> PartialEq for dyn IListener<Ev> {
+    fn eq(&self, other: &Self) -> bool {
+        self.get_id() == other.get_id()
+    }
 }
 
 pub type LiRC<Ev> = Rc<RefCell<dyn IListener<Ev>>>;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, PartialEq)]
 pub struct DefListener<Ev: Event> {
     id: usize,
     triggers: Vec<Ev>,
 }
 
-impl<Ev: Event> PartialEq for DefListener<Ev> {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.get_id()
+impl<Ev: Event> Debug for DefListener<Ev> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DefListener")
+            .field("id", &self.id)
+            .field("triggers", &self.triggers)
+            .finish()
     }
 }
 
@@ -37,8 +48,8 @@ impl<Ev: Event> DefListener<Ev> {
     pub fn new(triggers: Vec<Ev>) -> Self {
         Self { triggers, id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst) }
     }
-    pub fn get_id(&self) -> usize {
-        self.id
+    pub fn new_lirc(triggers: Vec<Ev>) -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Self { triggers, id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst) }))
     }
 }
 
@@ -62,5 +73,8 @@ impl<Ev: Event> IListener<Ev> for DefListener<Ev> {
             ret.push(t);
         }
         ret
+    }
+    fn get_id(&self) -> usize {
+        self.id
     }
 }
