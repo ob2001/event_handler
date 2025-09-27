@@ -34,19 +34,19 @@ impl<Ev: Event> PartialEq for DefConversant<Ev> {
     }
 }
 
-impl<Ev: Event> PartialEq<dyn IListener<Ev>> for DefConversant<Ev> {
-    fn eq(&self, other: &dyn IListener<Ev>) -> bool {
+impl<Ev: Event> PartialEq<dyn IListener<Ev, usize>> for DefConversant<Ev> {
+    fn eq(&self, other: &dyn IListener<Ev, usize>) -> bool {
         self.id == other.get_id()
     }
 }
 
-impl<Ev: Event> PartialEq<dyn IEmitter<Ev>> for DefConversant<Ev> {
-    fn eq(&self, other: &dyn IEmitter<Ev>) -> bool {
+impl<Ev: Event> PartialEq<dyn IEmitter<Ev, usize>> for DefConversant<Ev> {
+    fn eq(&self, other: &dyn IEmitter<Ev, usize>) -> bool {
         self.id == other.get_id()
     }
 }
 
-impl<Ev: Event> IEmitter<Ev> for DefConversant<Ev> {
+impl<Ev: Event> IEmitter<Ev, usize> for DefConversant<Ev> {
     fn emit(&self) -> Option<Vec<Ev>> {
         // todo
         None
@@ -62,7 +62,7 @@ impl<Ev: Event> IEmitter<Ev> for DefConversant<Ev> {
     }
 }
 
-impl<Ev: Event> IListener<Ev> for DefConversant<Ev>  {
+impl<Ev: Event> IListener<Ev, usize> for DefConversant<Ev>  {
     fn get_triggers(&self) -> Vec<&Ev> {
         let mut ret = vec![];
         for t in &self.triggers {
