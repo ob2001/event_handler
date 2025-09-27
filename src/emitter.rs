@@ -2,7 +2,7 @@ use std::{fmt::Debug, rc::Rc, cell::RefCell};
 use crate::prelude::*;
 use crate::IDCOUNTER;
 
-pub trait IEmitter<Ev: Event>: Debug {
+pub trait IEmitter<Ev: Event, Id: PartialEq + Debug>: Debug {
     // Cause emitter to emit events without regard
     // for context.
     // Implementation specific to each emitter.
@@ -10,16 +10,16 @@ pub trait IEmitter<Ev: Event>: Debug {
     fn emit(&self) -> Option<Vec<Ev>>;
     fn add_handler(&mut self, parent: EHRc<Ev>);
     fn get_handlers(&self) -> Vec<EHRc<Ev>>;
-    fn get_id(&self) -> usize;
+    fn get_id(&self) -> Id;
 }
 
-impl<Ev: Event> PartialEq for dyn IEmitter<Ev> {
+impl<Ev: Event, Id: PartialEq + Debug> PartialEq for dyn IEmitter<Ev, Id> {
     fn eq(&self, other: &Self) -> bool {
         self.get_id() == other.get_id()
     }
 }
 
-pub type EmRC<Ev> = Rc<RefCell<dyn IEmitter<Ev>>>;
+pub type EmRC<Ev, Id> = Rc<RefCell<dyn IEmitter<Ev, Id>>>;
 
 #[derive(Clone, PartialEq)]
 pub struct DefEmitter<Ev: Event> {
@@ -36,8 +36,8 @@ impl<Ev: Event> Debug for DefEmitter<Ev> {
     }
 }
 
-impl<Ev: Event + 'static> Into<EmRC<Ev>> for DefEmitter<Ev> {
-    fn into(self) -> EmRC<Ev> {
+impl<Ev: Event + 'static> Into<EmRC<Ev, usize>> for DefEmitter<Ev> {
+    fn into(self) -> EmRC<Ev, usize> {
         use std::{rc::Rc, cell::RefCell};
         Rc::new(RefCell::new(self))
     }
@@ -53,12 +53,12 @@ impl<Ev: Event> DefEmitter<Ev> {
 }
 
 impl<Ev: Event + 'static> DefEmitter<Ev> {
-    pub fn into_emrc(self) -> EmRC<Ev> {
+    pub fn into_emrc(self) -> EmRC<Ev, usize> {
         self.into()
     }
 }
 
-impl<Ev: Event> IEmitter<Ev> for DefEmitter<Ev>  {
+impl<Ev: Event> IEmitter<Ev, usize> for DefEmitter<Ev>  {
     fn emit(&self) -> Option<Vec<Ev>> {
         // todo
         None
