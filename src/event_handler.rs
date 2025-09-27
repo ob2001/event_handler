@@ -67,7 +67,7 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
     pub fn push_event(&mut self, event: Option<(EmRC<Ev, I>, Ev)>) {
         match event {
             Some(e) => {
-                #[cfg(debug_assertions)]
+                #[cfg(test)]
                 println!("Event pushed to stack: (Emitter id: {:?}, Event: {:?})", e.0.borrow().get_id(), e.1);
 
                 self.stack.push(e)
@@ -105,7 +105,7 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
     }
 
     pub fn peek_next(&self) -> Option<&(EmRC<Ev, I>, Ev)> {
-        #[cfg(debug_assertions)]
+        #[cfg(test)]
         println!("Event peeked: {:?}", self.stack.first());
 
         self.stack.first()
@@ -129,7 +129,7 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
 
     pub fn pop_next(&mut self) -> Option<(EmRC<Ev, I>, Ev)> {
         let ret = self.stack.pop();
-        #[cfg(debug_assertions)]
+        #[cfg(test)]
         println!("Event popped: {:?}", ret);
 
         self.prev_event = ret.clone();
@@ -145,7 +145,7 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
 
         match next {
             Some(e) => {
-                #[cfg(debug_assertions)]
+                #[cfg(test)]
                 println!("Consumed event: {:?}", e);
 
                 self.broadcast_event(e);
@@ -155,7 +155,7 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
     }
 
     pub fn broadcast_event(&mut self, event: (EmRC<Ev, I>, Ev)) {
-        #[cfg(debug_assertions)]
+        #[cfg(test)]
         println!("Broadcast event: {:?}", event);
 
         for li in self.get_listeners() {
