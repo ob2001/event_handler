@@ -43,13 +43,31 @@ mod tests {
         assert_ne!(li1, li2);
 
         assert_eq!(eh1.borrow().get_stack().len(), 0);
+        assert_eq!(eh1.borrow().get_listeners().len(), 0);
 
         assert_eq!(em1.get_handlers()[0], eh1);
+        
+        println!("{:?}", eh1.borrow());
+        println!("{:?}", eh2.borrow());
+        println!("{:?}", em1);
+        println!("{:?}", em2);
+        println!("{:?}", li1);
+        println!("{:?}", li2);
     }
 
     #[test]
     fn stack_manipulation() {
-        // todo: Finish test
+        let eh = EventHandler::<TestEvents>::new_ehrc();
+        let em = DefEmitter::new_emrc(vec![eh.clone()]);
+
+        assert_eq!(eh.borrow().get_stack().len(), 0);
+
+        eh.borrow_mut().push_event(Some((em.clone(), TestEvents::E1)));
+
+        assert_eq!(eh.borrow().get_stack().len(), 1);
+
+        assert_eq!(eh.borrow().peek_next_emitter().unwrap().borrow().get_id(), em.borrow().get_id());
+        assert_eq!(eh.borrow().peek_next_event().unwrap(), &TestEvents::E1);
     }
 
     #[test]
