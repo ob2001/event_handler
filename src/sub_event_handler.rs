@@ -4,40 +4,40 @@ use crate::{IDCOUNTER, event_handler::EventHandler};
 
 // Event handler reporting to a parent object
 #[derive(Clone)]
-pub struct SubEventHandler<'a, Id: PartialEq + Debug, T: EHParent<Ev> + Debug, Ev: Event> {
+pub struct SubEventHandler<'a, T: EHParent<Ev, I> + Debug, Ev: Event, I: Id> {
     id: usize,
-    stack: Vec<(EmRC<Ev, Id>, Ev)>,
-    prev_event: Option<(EmRC<Ev, Id>, Ev)>,
-    listeners: Vec<LiRC<Ev, Id>>,
+    stack: Vec<(EmRC<Ev, I>, Ev)>,
+    prev_event: Option<(EmRC<Ev, I>, Ev)>,
+    listeners: Vec<LiRC<Ev, I>>,
     parents: Vec<&'a T>,
 }
 
-impl<'a, Id: PartialEq + Debug, T: EHParent<Ev> + Debug, Ev: Event> Debug for SubEventHandler<'a, Id, T, Ev> {
+impl<'a, T: EHParent<Ev, I> + Debug, Ev: Event, I: Id> Debug for SubEventHandler<'a, T, Ev, I> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let prev_event_str = if self.prev_event.is_some() { &Some((self.prev_event.as_ref().unwrap().0.borrow().get_id(), self.prev_event.as_ref().unwrap().1)) } else { &None as &Option<(Id, Ev)> };
+        let prev_event_str = if self.prev_event.is_some() { &Some((self.prev_event.as_ref().unwrap().0.borrow().get_id(), self.prev_event.as_ref().unwrap().1)) } else { &None as &Option<(I, Ev)> };
 
         f.debug_struct("SubEventHandler")
             .field("id", &self.id)
-            .field("stack", &self.stack.iter().map(|e| (e.0.borrow().get_id(), e.1)).collect::<Vec<(Id, Ev)>>())
+            .field("stack", &self.stack.iter().map(|e| (e.0.borrow().get_id(), e.1)).collect::<Vec<(I, Ev)>>())
             .field("prev_event", prev_event_str)
-            .field("listeners", &self.listeners.iter().map(|l| l.borrow().get_id()).collect::<Vec<Id>>())
+            .field("listeners", &self.listeners.iter().map(|l| l.borrow().get_id()).collect::<Vec<I>>())
             .finish()
     }
 }
 
-impl<'a, Id: PartialEq + Debug, T: EHParent<Ev> + Debug, Ev: Event> PartialEq for SubEventHandler<'a, Id, T, Ev> {
+impl<'a, T: EHParent<Ev, I> + Debug, Ev: Event, I: Id> PartialEq for SubEventHandler<'a, T, Ev, I> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.get_id()
     }
 }
 
-impl<'a, Id: PartialEq + Debug, T: EHParent<Ev> + Debug, Ev: Event> PartialEq<EventHandler<Ev>> for SubEventHandler<'a, Id, T, Ev> {
-    fn eq(&self, other: &EventHandler<Ev>) -> bool {
+impl<'a, T: EHParent<Ev, I> + Debug, Ev: Event, I: Id> PartialEq<EventHandler<Ev, I>> for SubEventHandler<'a, T, Ev, I> {
+    fn eq(&self, other: &EventHandler<Ev, I>) -> bool {
         self.id == other.get_id()
     }
 }
 
-impl<'a, Id: PartialEq + Debug, T: EHParent<Ev> + Debug, Ev: Event> SubEventHandler<'a, Id, T, Ev> {
+impl<'a, T: EHParent<Ev, I> + Debug, Ev: Event, I: Id> SubEventHandler<'a, T, Ev, I> {
     pub fn new(parents: Vec<&'a T>) -> Self {
         SubEventHandler {
             id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
@@ -52,7 +52,7 @@ impl<'a, Id: PartialEq + Debug, T: EHParent<Ev> + Debug, Ev: Event> SubEventHand
         self.id
     }
 
-    pub fn push_event(&mut self, event: Option<(EmRC<Ev, Id>, Ev)>) {
+    pub fn push_event(&mut self, event: Option<(EmRC<Ev, I>, Ev)>) {
         match event {
             Some(e) => {
                 #[cfg(debug_assertions)]
@@ -64,7 +64,7 @@ impl<'a, Id: PartialEq + Debug, T: EHParent<Ev> + Debug, Ev: Event> SubEventHand
         }
     }
 
-    pub fn push_events(&mut self, events: Option<Vec<(EmRC<Ev, Id>, Ev)>>) {
+    pub fn push_events(&mut self, events: Option<Vec<(EmRC<Ev, I>, Ev)>>) {
         match events {
             None => {}
             Some(e) => {
@@ -76,7 +76,7 @@ impl<'a, Id: PartialEq + Debug, T: EHParent<Ev> + Debug, Ev: Event> SubEventHand
         }
     }
 
-    pub fn get_stack(&self) -> &Vec<(EmRC<Ev, Id>, Ev)> {
+    pub fn get_stack(&self) -> &Vec<(EmRC<Ev, I>, Ev)> {
         &self.stack
     }
 
@@ -84,19 +84,19 @@ impl<'a, Id: PartialEq + Debug, T: EHParent<Ev> + Debug, Ev: Event> SubEventHand
         self.get_stack().into_iter().map(|e| &e.1).collect()
     }
 
-    pub fn get_stack_emitters(&self) -> Vec<EmRC<Ev, Id>> {
+    pub fn get_stack_emitters(&self) -> Vec<EmRC<Ev, I>> {
         self.get_stack().into_iter().map(|e| e.0.clone()).collect()
     }
 
-    pub fn add_listener(&mut self, listener: LiRC<Ev, Id>) {
+    pub fn add_listener(&mut self, listener: LiRC<Ev, I>) {
         self.listeners.push(listener)
     }
 
-    pub fn get_listeners(&self) -> &Vec<LiRC<Ev, Id>> {
+    pub fn get_listeners(&self) -> &Vec<LiRC<Ev, I>> {
         &self.listeners
     }
 
-    pub fn peek_next(&self) -> Option<&(EmRC<Ev, Id>, Ev)> {
+    pub fn peek_next(&self) -> Option<&(EmRC<Ev, I>, Ev)> {
         #[cfg(debug_assertions)]
         println!("Event peeked: {:?}", self.stack.first());
 
@@ -111,7 +111,7 @@ impl<'a, Id: PartialEq + Debug, T: EHParent<Ev> + Debug, Ev: Event> SubEventHand
         }
     }
 
-    pub fn peek_next_emitter(&self) -> Option<&EmRC<Ev, Id>> {
+    pub fn peek_next_emitter(&self) -> Option<&EmRC<Ev, I>> {
         if let Some((em, _)) = self.peek_next() {
             Some(em)
         } else {
@@ -119,7 +119,7 @@ impl<'a, Id: PartialEq + Debug, T: EHParent<Ev> + Debug, Ev: Event> SubEventHand
         }
     }
 
-    pub fn pop_next(&mut self) -> Option<(EmRC<Ev, Id>, Ev)> {
+    pub fn pop_next(&mut self) -> Option<(EmRC<Ev, I>, Ev)> {
         let ret = self.stack.pop();
         #[cfg(debug_assertions)]
         println!("Event popped: {:?}", ret);
@@ -128,7 +128,7 @@ impl<'a, Id: PartialEq + Debug, T: EHParent<Ev> + Debug, Ev: Event> SubEventHand
         ret
     }
 
-    pub fn get_prev_event(&self) -> &Option<(EmRC<Ev, Id>, Ev)> {
+    pub fn get_prev_event(&self) -> &Option<(EmRC<Ev, I>, Ev)> {
         &self.prev_event
     }
 
@@ -146,7 +146,7 @@ impl<'a, Id: PartialEq + Debug, T: EHParent<Ev> + Debug, Ev: Event> SubEventHand
         }
     }
 
-    pub fn broadcast_event(&mut self, event: (EmRC<Ev, Id>, Ev)) {
+    pub fn broadcast_event(&mut self, event: (EmRC<Ev, I>, Ev)) {
         #[cfg(debug_assertions)]
         println!("Broadcast event: {:?}", event);
 
@@ -161,7 +161,7 @@ impl<'a, Id: PartialEq + Debug, T: EHParent<Ev> + Debug, Ev: Event> SubEventHand
         }
     }
 
-    pub fn broadcast_events(&mut self, events: Vec<(EmRC<Ev, Id>, Ev)>) {
+    pub fn broadcast_events(&mut self, events: Vec<(EmRC<Ev, I>, Ev)>) {
         for e in events {
             self.broadcast_event(e);
         }

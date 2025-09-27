@@ -32,8 +32,8 @@ mod tests {
     #[test]
     fn empty_initializations() {
         use TestEvents::*;
-        let eh1 = EventHandler::<TestEvents>::new_ehrc();
-        let eh2 = EventHandler::<TestEvents>::new_ehrc();
+        let eh1 = EventHandler::<TestEvents, usize>::new_ehrc();
+        let eh2 = EventHandler::<TestEvents, usize>::new_ehrc();
         let em1 = DefEmitter::new(vec![eh1.clone()]);
         let em2 = DefEmitter::new(vec![]);
         let li1 = DefListener::new(vec![E1, E2, E3, E4(3), E5("Hi")]);
@@ -65,7 +65,7 @@ mod tests {
 
     #[test]
     fn stack_manipulation() {
-        let eh = EventHandler::<TestEvents>::new_ehrc();
+        let eh = EventHandler::<TestEvents, usize>::new_ehrc();
         let em = DefEmitter::new_emrc(vec![eh.clone()]);
 
         assert_eq!(eh.borrow().get_stack().len(), 0);

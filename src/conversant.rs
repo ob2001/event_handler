@@ -5,7 +5,7 @@ use crate::{IDCOUNTER};
 #[derive(Clone)]
 pub struct DefConversant<Ev: Event> {
     id: usize,
-    handlers: Vec<EHRc<Ev>>,
+    handlers: Vec<EHRc<Ev, usize>>,
     triggers: Vec<Ev>,
 }
 
@@ -20,7 +20,7 @@ impl<Ev: Event> Debug for DefConversant<Ev> {
 }
 
 impl<Ev: Event> DefConversant<Ev>  {
-    pub fn new(handlers: Vec<EHRc<Ev>>, triggers: Option<Vec<Ev>>) -> Self {
+    pub fn new(handlers: Vec<EHRc<Ev, usize>>, triggers: Option<Vec<Ev>>) -> Self {
         DefConversant { handlers,
             triggers: if triggers.is_some() { triggers.unwrap() } else { vec![] },
             id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
@@ -51,10 +51,10 @@ impl<Ev: Event> IEmitter<Ev, usize> for DefConversant<Ev> {
         // todo
         None
     }
-    fn add_handler(&mut self, handler: EHRc<Ev>) {
+    fn add_handler(&mut self, handler: EHRc<Ev, usize>) {
         self.handlers.push(handler.clone());
     }
-    fn get_handlers(&self) -> Vec<EHRc<Ev>> {
+    fn get_handlers(&self) -> Vec<EHRc<Ev, usize>> {
         self.handlers.clone()
     }
     fn get_id(&self) -> usize {
