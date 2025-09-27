@@ -15,6 +15,7 @@ pub static IDCOUNTER: AtomicUsize = AtomicUsize::new(0);
 
 #[cfg(test)]
 mod tests {
+    use crate::conversant::DefConversant;
     use crate::prelude::*;
     use crate::{event_handler::EventHandler, emitter::DefEmitter, listener::DefListener};
 
@@ -29,7 +30,7 @@ mod tests {
 
     // *** Tests start here *** //
     #[test]
-    fn empty_initialization() {
+    fn empty_initializations() {
         use TestEvents::*;
         let eh1 = EventHandler::<TestEvents>::new_ehrc();
         let eh2 = EventHandler::<TestEvents>::new_ehrc();
@@ -37,15 +38,20 @@ mod tests {
         let em2 = DefEmitter::new(vec![]);
         let li1 = DefListener::new(vec![E1, E2, E3, E4(3), E5("Hi")]);
         let li2 = DefListener::new(vec![]);
+        let co1 = DefConversant::<TestEvents>::new(vec![eh2.clone()], None);
+        let co2 = DefConversant::<TestEvents>::new(vec![], Some(vec![E1, E5("Bye")]));
 
         assert_ne!(eh1, eh2);
         assert_ne!(em1, em2);
         assert_ne!(li1, li2);
+        assert_ne!(co1, co2);
 
         assert_eq!(eh1.borrow().get_stack().len(), 0);
         assert_eq!(eh1.borrow().get_listeners().len(), 0);
 
         assert_eq!(em1.get_handlers()[0], eh1);
+
+        assert_eq!(co1.get_handlers()[0], eh2);
         
         println!("{:?}", eh1.borrow());
         println!("{:?}", eh2.borrow());
@@ -53,6 +59,8 @@ mod tests {
         println!("{:?}", em2);
         println!("{:?}", li1);
         println!("{:?}", li2);
+        println!("{:?}", co1);
+        println!("{:?}", co2);
     }
 
     #[test]
