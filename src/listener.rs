@@ -23,12 +23,12 @@ impl<Ev: Event, Id: PartialEq + Debug> PartialEq for dyn IListener<Ev, Id> {
 pub type LiRC<Ev, Id> = Rc<RefCell<dyn IListener<Ev, Id>>>;
 
 #[derive(Clone, PartialEq)]
-pub struct DefListener<Ev: Event, Id: PartialEq + Debug> {
-    id: Id,
+pub struct DefListener<Ev: Event> {
+    id: usize,
     triggers: Vec<Ev>,
 }
 
-impl<Ev: Event> Debug for DefListener<Ev, usize> {
+impl<Ev: Event> Debug for DefListener<Ev> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DefListener")
             .field("id", &self.id)
@@ -37,14 +37,14 @@ impl<Ev: Event> Debug for DefListener<Ev, usize> {
     }
 }
 
-impl<Ev: Event + 'static> Into<LiRC<Ev, usize>> for DefListener<Ev, usize> {
+impl<Ev: Event + 'static> Into<LiRC<Ev, usize>> for DefListener<Ev> {
     fn into(self) -> LiRC<Ev, usize> {
         use std::{rc::Rc, cell::RefCell};
         Rc::new(RefCell::new(self))
     }
 }
 
-impl<Ev: Event> DefListener<Ev, usize> {
+impl<Ev: Event> DefListener<Ev> {
     pub fn new(triggers: Vec<Ev>) -> Self {
         Self { triggers, id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst) }
     }
@@ -53,13 +53,13 @@ impl<Ev: Event> DefListener<Ev, usize> {
     }
 }
 
-impl<Ev: Event + 'static> DefListener<Ev, usize> {
+impl<Ev: Event + 'static> DefListener<Ev> {
     pub fn into_emli(self) -> LiRC<Ev, usize> {
         self.into()
     }
 }
 
-impl<Ev: Event> IListener<Ev, usize> for DefListener<Ev, usize> {
+impl<Ev: Event> IListener<Ev, usize> for DefListener<Ev> {
     fn on_triggers(&self, triggers: Vec<&Ev>) {
         for t in triggers {
             match t {
