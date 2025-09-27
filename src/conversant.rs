@@ -1,11 +1,10 @@
 use std::{fmt::Debug};
 use crate::prelude::*;
-use crate::{IDCOUNTER, emitter::DefEmitter, listener::DefListener};
+use crate::{IDCOUNTER};
 
 #[derive(Clone)]
 pub struct DefConversant<Ev: Event> {
-    em_id: usize,
-    li_id: usize,
+    id: usize,
     handlers: Vec<EHRc<Ev>>,
     triggers: Vec<Ev>,
 }
@@ -13,8 +12,7 @@ pub struct DefConversant<Ev: Event> {
 impl<Ev: Event> Debug for DefConversant<Ev> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DefConversant")
-            .field("em_id", &self.em_id)
-            .field("li_id", &self.li_id)
+            .field("id", &self.id)
             .field("handlers", &self.handlers.iter().map(|h| h.borrow().get_id()).collect::<Vec<usize>>())
             .field("triggers", &self.triggers)
             .finish()
@@ -22,24 +20,29 @@ impl<Ev: Event> Debug for DefConversant<Ev> {
 }
 
 impl<Ev: Event> DefConversant<Ev>  {
-    pub fn new(handlers: Vec<EHRc<Ev>>) -> Self {
+    pub fn new(handlers: Vec<EHRc<Ev>>, triggers: Option<Vec<Ev>>) -> Self {
         DefConversant { handlers,
-            triggers: Vec::new(),
-            em_id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
-            li_id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
+            triggers: if triggers.is_some() { triggers.unwrap() } else { vec![] },
+            id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
         }
     }
 }
 
-impl<Ev: Event> PartialEq<DefListener<Ev>> for DefConversant<Ev> {
-    fn eq(&self, other: &DefListener<Ev>) -> bool {
-        self.li_id == other.get_id()
+impl<Ev: Event> PartialEq for DefConversant<Ev> {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
     }
 }
 
-impl<Ev: Event> PartialEq<DefEmitter<Ev>> for DefConversant<Ev> {
-    fn eq(&self, other: &DefEmitter<Ev>) -> bool {
-        self.em_id == other.get_id()
+impl<Ev: Event> PartialEq<dyn IListener<Ev>> for DefConversant<Ev> {
+    fn eq(&self, other: &dyn IListener<Ev>) -> bool {
+        self.id == other.get_id()
+    }
+}
+
+impl<Ev: Event> PartialEq<dyn IEmitter<Ev>> for DefConversant<Ev> {
+    fn eq(&self, other: &dyn IEmitter<Ev>) -> bool {
+        self.id == other.get_id()
     }
 }
 
@@ -55,7 +58,7 @@ impl<Ev: Event> IEmitter<Ev> for DefConversant<Ev> {
         self.handlers.clone()
     }
     fn get_id(&self) -> usize {
-        self.em_id
+        self.id
     }
 }
 
@@ -75,6 +78,6 @@ impl<Ev: Event> IListener<Ev> for DefConversant<Ev>  {
         }
     }
     fn get_id(&self) -> usize {
-        self.li_id
+        self.id
     }
 }
