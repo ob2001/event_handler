@@ -74,25 +74,25 @@ mod tests {
         let eh = EH::<TEv, usize>::new_ehrc();
         let em = DEm::new_emrc(vec![eh.clone()]);
 
-        println!("Event Handler: {:?}", eh);
+        println!("{:?}", eh.borrow());
         assert_eq!(eh.borrow().get_stack_len(), 0);
 
         eh.borrow_mut().push_event(Some(Event::new(em.clone(), Some(E1))));
-        println!("Event Handler: {:?}", eh);
+        println!("{:?}", eh.borrow());
 
         assert_eq!(eh.borrow().get_stack_len(), 1);
         assert_eq!(eh.borrow().peek_next_emitter().unwrap().borrow().get_id(), em.borrow().get_id());
         assert_eq!(eh.borrow().peek_next_tag().unwrap(), E1);
 
         eh.borrow_mut().push_events(Some(vec![Event::new(em.clone(), Some(E3)), Event::new(em.clone(), Some(E5("A")))]));
-        println!("Event Handler: {:?}", eh);
+        println!("{:?}", eh.borrow());
 
         assert_eq!(eh.borrow().get_stack_len(), 3);
         assert_eq!(eh.borrow().peek_next_emitter().unwrap().borrow().get_id(), em.borrow().get_id());
         assert_eq!(eh.borrow().peek_next_tag(), Some(E5("A")));
 
         let next = eh.borrow_mut().pop_next();
-        println!("Event Handler: {:?}", eh);
+        println!("{:?}", eh.borrow());
 
         assert_eq!(next.as_ref().unwrap().get_emitter().borrow().get_id(), em.borrow().get_id());
         assert_eq!(next.as_ref().unwrap().get_tag(), Some(E5("A")));
@@ -101,7 +101,6 @@ mod tests {
         assert_eq!(eh.borrow().peek_next_emitter().unwrap().borrow().get_id(), em.borrow().get_id());
         assert_eq!(eh.borrow().peek_next_tag(), Some(E3));
         assert_eq!(eh.borrow().get_prev_event(), next.as_ref());
-        println!("Hello");
     }
 
     #[test]
