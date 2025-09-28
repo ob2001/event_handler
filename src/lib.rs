@@ -7,7 +7,7 @@ pub mod sub_event_handler;
 pub mod eh_parent;
 pub mod emitter;
 pub mod listener;
-pub mod conversant;
+pub mod em_li;
 
 pub static IDCOUNTER: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 
@@ -18,7 +18,7 @@ mod tests {
         event_handler::EventHandler as EH,
         emitter::DefEmitter as DEm,
         listener::DefListener as DLi,
-        conversant::DefConversant as DCo
+        em_li::DefEmLi as DEmLi
     };
 
     #[derive(Debug, PartialEq, Copy, Clone)]
@@ -41,19 +41,19 @@ mod tests {
         let em2 = DEm::new(vec![]);
         let li1 = DLi::new(vec![E1, E2, E3, E4(3), E5("Hi")]);
         let li2 = DLi::new(vec![]);
-        let co1 = DCo::<TEv>::new(vec![eh2.clone()], None);
-        let co2 = DCo::<TEv>::new(vec![], Some(vec![E1, E5("Bye")]));
+        let emli1 = DEmLi::<TEv>::new(vec![eh2.clone()], None);
+        let emli2 = DEmLi::<TEv>::new(vec![], Some(vec![E1, E5("Bye")]));
 
         assert_ne!(eh1, eh2);
         assert_ne!(em1, em2);
         assert_ne!(li1, li2);
-        assert_ne!(co1, co2);
+        assert_ne!(emli1, emli2);
 
         assert_eq!(eh1.borrow().get_stack_len(), 0);
         assert_eq!(eh1.borrow().get_listeners().len(), 0);
 
         assert_eq!(em1.get_handlers()[0], eh1);
-        assert_eq!(co1.get_handlers()[0], eh2);
+        assert_eq!(emli1.get_handlers()[0], eh2);
 
         println!("{:?}", eh1.borrow());
         println!("{:?}", eh2.borrow());
@@ -61,8 +61,8 @@ mod tests {
         println!("{:?}", em2);
         println!("{:?}", li1);
         println!("{:?}", li2);
-        println!("{:?}", co1);
-        println!("{:?}", co2);
+        println!("{:?}", emli1);
+        println!("{:?}", emli2);
     }
 
     #[test]
