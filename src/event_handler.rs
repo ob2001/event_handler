@@ -64,7 +64,7 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
     pub fn push_event(&mut self, event: Option<(EmRC<Ev, I>, Ev)>) {
         if let Some(e) = event {
             #[cfg(test)]
-            println!("Event pushed to stack: (Emitter id: {:?}, Event: {:?})", e.0.borrow().get_id(), e.1);
+            println!("Event pushed: (Emitter id: {:?}, Event: {:?})", e.0.borrow().get_id(), e.1);
     
             self.stack.push(e);
         }
@@ -78,6 +78,9 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
     }
     pub fn get_stack(&self) -> &Vec<(EmRC<Ev, I>, Ev)> {
         &self.stack
+    }
+    pub fn get_stack_len(&self) -> usize {
+        self.stack.len()
     }
     pub fn get_stack_events(&self) -> Vec<&Ev> {
         self.get_stack().into_iter().map(|e| &e.1).collect()
@@ -93,7 +96,13 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
     }
     pub fn peek_next(&self) -> Option<&(EmRC<Ev, I>, Ev)> {
         #[cfg(test)]
-        println!("Event peeked: {:?}", self.stack.last());
+        {
+            if let Some(e) = self.stack.last() {
+                println!("Event peeked: (Emitter id: {:?}, Event: {:?})", e.0.borrow().get_id(), e.1);
+            } else {
+                println!("Event peeked: None");
+            }
+        }
 
         self.stack.last()
     }
@@ -116,7 +125,7 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
             self.prev_event = Some(ret.clone());
 
             #[cfg(test)]
-            println!("Event popped from stack (Emitter: {:?}, Event: {:?})", ret.0.borrow().get_id(), ret.1);
+            println!("Event popped: (Emitter: {:?}, Event: {:?})", ret.0.borrow().get_id(), ret.1);
 
             Some(ret)
         } else {
