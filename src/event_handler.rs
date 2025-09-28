@@ -2,7 +2,7 @@ use std::{fmt::Debug, rc::Rc, cell::RefCell};
 use crate::prelude::*;
 use crate::{IDCOUNTER, sub_event_handler::SubEventHandler};
 
-pub trait Event = Debug + PartialEq + Copy;
+pub trait Event = Debug + PartialEq + Copy + 'static;
 pub trait Id = PartialEq + Debug + Clone;
 
 #[derive(Clone)]
@@ -55,15 +55,12 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
             listeners: Vec::new()
         }
     }
-
     pub fn new_ehrc() -> Rc<RefCell<Self>> {
         EventHandler::new().into()
     }
-
     pub fn get_id(&self) -> usize {
         self.id
     }
-
     pub fn push_event(&mut self, event: Option<(EmRC<Ev, I>, Ev)>) {
         match event {
             Some(e) => {
@@ -75,7 +72,6 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
             _ => {}
         }
     }
-
     pub fn push_events(&mut self, events: Option<Vec<(EmRC<Ev, I>, Ev)>>) {
         if let Some(events) = events {
             for event in events {
@@ -83,34 +79,27 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
             }
         }
     }
-
     pub fn get_stack(&self) -> &Vec<(EmRC<Ev, I>, Ev)> {
         &self.stack
     }
-
     pub fn get_stack_events(&self) -> Vec<&Ev> {
         self.get_stack().into_iter().map(|e| &e.1).collect()
     }
-
     pub fn get_stack_emitters(&self) -> Vec<EmRC<Ev, I>> {
         self.get_stack().into_iter().map(|e| e.0.clone()).collect()
     }
-
     pub fn add_listener(&mut self, listener: LiRC<Ev, I>) {
         self.listeners.push(listener)
     }
-
     pub fn get_listeners(&self) -> &Vec<LiRC<Ev, I>> {
         &self.listeners
     }
-
     pub fn peek_next(&self) -> Option<&(EmRC<Ev, I>, Ev)> {
         #[cfg(test)]
-        println!("Event peeked: {:?}", self.stack.first());
+        println!("Event peeked: {:?}", self.stack.last());
 
-        self.stack.first()
+        self.stack.last()
     }
-
     pub fn peek_next_event(&self) -> Option<&Ev> {
         if let Some((_, e)) = self.peek_next() {
             Some(e)
@@ -118,7 +107,6 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
             None
         }
     }
-
     pub fn peek_next_emitter(&self) -> Option<&EmRC<Ev, I>> {
         if let Some((em, _)) = self.peek_next() {
             Some(em)
@@ -126,7 +114,6 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
             None
         }
     }
-
     pub fn pop_next(&mut self) -> Option<(EmRC<Ev, I>, Ev)> {
         let ret = self.stack.pop();
         #[cfg(test)]
@@ -135,11 +122,9 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
         self.prev_event = ret.clone();
         ret
     }
-
     pub fn get_prev_event(&self) -> &Option<(EmRC<Ev, I>, Ev)> {
         &self.prev_event
     }
-
     pub fn consume_next_event(&mut self) {
         let next = self.pop_next();
 
@@ -153,7 +138,6 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
             None => ()
         }
     }
-
     pub fn broadcast_event(&mut self, event: (EmRC<Ev, I>, Ev)) {
         #[cfg(test)]
         println!("Broadcast event: {:?}", event);
@@ -164,7 +148,6 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
             }
         }
     }
-
     pub fn broadcast_events(&mut self, events: Vec<(EmRC<Ev, I>, Ev)>) {
         for e in events {
             self.broadcast_event(e);

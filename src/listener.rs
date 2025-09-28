@@ -37,7 +37,7 @@ impl<Ev: Event> Debug for DefListener<Ev> {
     }
 }
 
-impl<Ev: Event + 'static> Into<LiRC<Ev, usize>> for DefListener<Ev> {
+impl<Ev: Event> Into<LiRC<Ev, usize>> for DefListener<Ev> {
     fn into(self) -> LiRC<Ev, usize> {
         use std::{rc::Rc, cell::RefCell};
         Rc::new(RefCell::new(self))
@@ -53,7 +53,7 @@ impl<Ev: Event> DefListener<Ev> {
     }
 }
 
-impl<Ev: Event + 'static> DefListener<Ev> {
+impl<Ev: Event> DefListener<Ev> {
     pub fn into_emli(self) -> LiRC<Ev, usize> {
         self.into()
     }

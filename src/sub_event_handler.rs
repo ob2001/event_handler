@@ -47,11 +47,9 @@ impl<'a, T: EHParent<Ev, I> + Debug, Ev: Event, I: Id> SubEventHandler<'a, T, Ev
             parents
         }
     }
-
     pub fn get_id(&self) -> usize {
         self.id
     }
-
     pub fn push_event(&mut self, event: Option<(EmRC<Ev, I>, Ev)>) {
         match event {
             Some(e) => {
@@ -63,7 +61,6 @@ impl<'a, T: EHParent<Ev, I> + Debug, Ev: Event, I: Id> SubEventHandler<'a, T, Ev
             _ => {}
         }
     }
-
     pub fn push_events(&mut self, events: Option<Vec<(EmRC<Ev, I>, Ev)>>) {
         match events {
             None => {}
@@ -75,34 +72,27 @@ impl<'a, T: EHParent<Ev, I> + Debug, Ev: Event, I: Id> SubEventHandler<'a, T, Ev
             }
         }
     }
-
     pub fn get_stack(&self) -> &Vec<(EmRC<Ev, I>, Ev)> {
         &self.stack
     }
-
     pub fn get_stack_events(&self) -> Vec<&Ev> {
         self.get_stack().into_iter().map(|e| &e.1).collect()
     }
-
     pub fn get_stack_emitters(&self) -> Vec<EmRC<Ev, I>> {
         self.get_stack().into_iter().map(|e| e.0.clone()).collect()
     }
-
     pub fn add_listener(&mut self, listener: LiRC<Ev, I>) {
         self.listeners.push(listener)
     }
-
     pub fn get_listeners(&self) -> &Vec<LiRC<Ev, I>> {
         &self.listeners
     }
-
     pub fn peek_next(&self) -> Option<&(EmRC<Ev, I>, Ev)> {
         #[cfg(debug_assertions)]
         println!("Event peeked: {:?}", self.stack.first());
 
         self.stack.first()
     }
-
     pub fn peek_next_event(&self) -> Option<&Ev> {
         if let Some((_, e)) = self.peek_next() {
             Some(e)
@@ -110,7 +100,6 @@ impl<'a, T: EHParent<Ev, I> + Debug, Ev: Event, I: Id> SubEventHandler<'a, T, Ev
             None
         }
     }
-
     pub fn peek_next_emitter(&self) -> Option<&EmRC<Ev, I>> {
         if let Some((em, _)) = self.peek_next() {
             Some(em)
@@ -118,7 +107,6 @@ impl<'a, T: EHParent<Ev, I> + Debug, Ev: Event, I: Id> SubEventHandler<'a, T, Ev
             None
         }
     }
-
     pub fn pop_next(&mut self) -> Option<(EmRC<Ev, I>, Ev)> {
         let ret = self.stack.pop();
         #[cfg(debug_assertions)]
@@ -127,11 +115,9 @@ impl<'a, T: EHParent<Ev, I> + Debug, Ev: Event, I: Id> SubEventHandler<'a, T, Ev
         self.prev_event = ret.clone();
         ret
     }
-
     pub fn get_prev_event(&self) -> &Option<(EmRC<Ev, I>, Ev)> {
         &self.prev_event
     }
-
     pub fn consume_next_event(&mut self) {
         let next = self.pop_next();
 
@@ -145,7 +131,6 @@ impl<'a, T: EHParent<Ev, I> + Debug, Ev: Event, I: Id> SubEventHandler<'a, T, Ev
             None => ()
         }
     }
-
     pub fn broadcast_event(&mut self, event: (EmRC<Ev, I>, Ev)) {
         #[cfg(debug_assertions)]
         println!("Broadcast event: {:?}", event);
@@ -160,7 +145,6 @@ impl<'a, T: EHParent<Ev, I> + Debug, Ev: Event, I: Id> SubEventHandler<'a, T, Ev
             p.notify_parent(&event);
         }
     }
-
     pub fn broadcast_events(&mut self, events: Vec<(EmRC<Ev, I>, Ev)>) {
         for e in events {
             self.broadcast_event(e);

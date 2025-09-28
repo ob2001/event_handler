@@ -36,7 +36,7 @@ impl<Ev: Event> Debug for DefEmitter<Ev> {
     }
 }
 
-impl<Ev: Event + 'static> Into<EmRC<Ev, usize>> for DefEmitter<Ev> {
+impl<Ev: Event> Into<EmRC<Ev, usize>> for DefEmitter<Ev> {
     fn into(self) -> EmRC<Ev, usize> {
         use std::{rc::Rc, cell::RefCell};
         Rc::new(RefCell::new(self))
@@ -52,7 +52,7 @@ impl<Ev: Event> DefEmitter<Ev> {
     }
 }
 
-impl<Ev: Event + 'static> DefEmitter<Ev> {
+impl<Ev: Event> DefEmitter<Ev> {
     pub fn into_emrc(self) -> EmRC<Ev, usize> {
         self.into()
     }
