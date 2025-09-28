@@ -1,15 +1,15 @@
 use std::{fmt::Debug};
-use crate::prelude::*;
+use crate::{prelude::*, event::Event};
 use crate::{IDCOUNTER};
 
 #[derive(Clone)]
-pub struct DefEmLi<Ev: Event> {
+pub struct DefEmLi<T: Tag> {
     id: usize,
-    handlers: Vec<EHRc<Ev, usize>>,
-    triggers: Vec<Ev>,
+    handlers: Vec<EHRc<T, usize>>,
+    triggers: Vec<T>,
 }
 
-impl<Ev: Event> Debug for DefEmLi<Ev> {
+impl<T: Tag> Debug for DefEmLi<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DefConversant")
             .field("id", &self.id)
@@ -19,8 +19,8 @@ impl<Ev: Event> Debug for DefEmLi<Ev> {
     }
 }
 
-impl<Ev: Event> DefEmLi<Ev>  {
-    pub fn new(handlers: Vec<EHRc<Ev, usize>>, triggers: Option<Vec<Ev>>) -> Self {
+impl<T: Tag> DefEmLi<T>  {
+    pub fn new(handlers: Vec<EHRc<T, usize>>, triggers: Option<Vec<T>>) -> Self {
         DefEmLi { handlers,
             triggers: if triggers.is_some() { triggers.unwrap() } else { vec![] },
             id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
@@ -28,53 +28,49 @@ impl<Ev: Event> DefEmLi<Ev>  {
     }
 }
 
-impl<Ev: Event> PartialEq for DefEmLi<Ev> {
+impl<T: Tag> PartialEq for DefEmLi<T> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
 
-impl<Ev: Event> PartialEq<dyn IListener<Ev, usize>> for DefEmLi<Ev> {
-    fn eq(&self, other: &dyn IListener<Ev, usize>) -> bool {
+impl<T: Tag> PartialEq<dyn IListener<T, usize>> for DefEmLi<T> {
+    fn eq(&self, other: &dyn IListener<T, usize>) -> bool {
         self.id == other.get_id()
     }
 }
 
-impl<Ev: Event> PartialEq<dyn IEmitter<Ev, usize>> for DefEmLi<Ev> {
-    fn eq(&self, other: &dyn IEmitter<Ev, usize>) -> bool {
+impl<T: Tag> PartialEq<dyn IEmitter<T, usize>> for DefEmLi<T> {
+    fn eq(&self, other: &dyn IEmitter<T, usize>) -> bool {
         self.id == other.get_id()
     }
 }
 
-impl<Ev: Event> IEmitter<Ev, usize> for DefEmLi<Ev> {
-    fn emit(&self) -> Option<Vec<(EmRC<Ev, usize>, Ev)>> {
-        // todo
-        None
-    }
-    fn add_handler(&mut self, handler: EHRc<Ev, usize>) {
+impl<T: Tag> IEmitter<T, usize> for DefEmLi<T> {
+    fn add_handler(&mut self, handler: EHRc<T, usize>) {
         self.handlers.push(handler.clone());
     }
-    fn get_handlers(&self) -> Vec<EHRc<Ev, usize>> {
+    fn get_handlers(&self) -> Vec<EHRc<T, usize>> {
         self.handlers.clone()
     }
     fn get_id(&self) -> usize {
         self.id
     }
-    fn into_emrc(self) -> EmRC<Ev, usize> {
+    fn into_emrc(self) -> EmRC<T, usize> {
         use std::{rc::Rc, cell::RefCell};
         Rc::new(RefCell::new(self))
     }
 }
 
-impl<Ev: Event> IListener<Ev, usize> for DefEmLi<Ev>  {
-    fn get_triggers(&self) -> Vec<&Ev> {
+impl<T: Tag> IListener<T, usize> for DefEmLi<T>  {
+    fn get_trigger_tags(&self) -> Vec<&T> {
         let mut ret = vec![];
         for t in &self.triggers {
             ret.push(t);
         }
         ret
     }
-    fn on_triggers(&self, triggers: Vec<&(EmRC<Ev, usize>, Ev)>) {
+    fn on_triggers(&self, triggers: Vec<Event<T, usize>>) {
         for t in triggers {
             match t {
                 _ => {}

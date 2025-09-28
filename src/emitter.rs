@@ -1,34 +1,33 @@
 use std::{fmt::Debug, rc::Rc, cell::RefCell};
-use crate::prelude::*;
+use crate::{prelude::*};
 use crate::IDCOUNTER;
 
-pub trait IEmitter<Ev: Event, I: Id>: Debug {
+pub trait IEmitter<T: Tag, I: Id>: Debug {
     // Cause emitter to emit events without regard
     // for context.
     // Implementation specific to each emitter.
     // May return any number of events in reaction.
-    fn emit(&self) -> Option<Vec<(EmRC<Ev, I>, Ev)>>;
-    fn add_handler(&mut self, parent: EHRc<Ev, I>);
-    fn get_handlers(&self) -> Vec<EHRc<Ev, I>>;
+    fn add_handler(&mut self, parent: EHRc<T, I>);
+    fn get_handlers(&self) -> Vec<EHRc<T, I>>;
     fn get_id(&self) -> I;
-    fn into_emrc(self) -> EmRC<Ev, I>;
+    fn into_emrc(self) -> EmRC<T, I>;
 }
 
-impl<Ev: Event, I: Id> PartialEq for dyn IEmitter<Ev, I> {
+impl<T: Tag, I: Id> PartialEq for dyn IEmitter<T, I> {
     fn eq(&self, other: &Self) -> bool {
         self.get_id() == other.get_id()
     }
 }
 
-pub type EmRC<Ev, Id> = Rc<RefCell<dyn IEmitter<Ev, Id>>>;
+pub type EmRC<T, I> = Rc<RefCell<dyn IEmitter<T, I>>>;
 
 #[derive(Clone, PartialEq)]
-pub struct DefEmitter<Ev: Event> {
+pub struct DefEmitter<T: Tag> {
     id: usize,
-    handlers: Vec<EHRc<Ev, usize>>,
+    handlers: Vec<EHRc<T, usize>>,
 }
 
-impl<Ev: Event> Debug for DefEmitter<Ev> {
+impl<T: Tag> Debug for DefEmitter<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DefEmitter")
             .field("id", &self.id)
@@ -37,37 +36,33 @@ impl<Ev: Event> Debug for DefEmitter<Ev> {
     }
 }
 
-impl<Ev: Event> Into<EmRC<Ev, usize>> for DefEmitter<Ev> {
-    fn into(self) -> EmRC<Ev, usize> {
+impl<T: Tag> Into<EmRC<T, usize>> for DefEmitter<T> {
+    fn into(self) -> EmRC<T, usize> {
         use std::{rc::Rc, cell::RefCell};
         Rc::new(RefCell::new(self))
     }
 }
 
-impl<Ev: Event> DefEmitter<Ev> {
-    pub fn new(handlers: Vec<EHRc<Ev, usize>>) -> Self {
+impl<T: Tag> DefEmitter<T> {
+    pub fn new(handlers: Vec<EHRc<T, usize>>) -> Self {
         Self { handlers, id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst) }
     }
-    pub fn new_emrc(handlers: Vec<EHRc<Ev, usize>>) -> Rc<RefCell<Self>> {
+    pub fn new_emrc(handlers: Vec<EHRc<T, usize>>) -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(Self { handlers, id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst)}))
     }
 }
 
-impl<Ev: Event> IEmitter<Ev, usize> for DefEmitter<Ev>  {
-    fn emit(&self) -> Option<Vec<(EmRC<Ev, usize>, Ev)>> {
-        // todo
-        None
-    }
-    fn add_handler(&mut self, handler: EHRc<Ev, usize>) {
+impl<T: Tag> IEmitter<T, usize> for DefEmitter<T>  {
+    fn add_handler(&mut self, handler: EHRc<T, usize>) {
         self.handlers.push(handler.clone());
     }
-    fn get_handlers(&self) -> Vec<EHRc<Ev, usize>> {
+    fn get_handlers(&self) -> Vec<EHRc<T, usize>> {
         self.handlers.clone()
     }
     fn get_id(&self) -> usize {
         self.id
     }
-    fn into_emrc(self) -> EmRC<Ev, usize> {
+    fn into_emrc(self) -> EmRC<T, usize> {
         self.into()
     }
 }

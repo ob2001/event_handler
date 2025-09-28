@@ -1,5 +1,6 @@
 pub use crate::{
-    event_handler::{Event, Id, EHRc},
+    event::Tag,
+    event_handler::{Id, EHRc},
     emitter::{IEmitter, EmRC},
     listener::{IListener, LiRC},
     eh_parent::EHParent,

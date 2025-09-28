@@ -2,6 +2,7 @@
 
 pub mod prelude;
 
+pub mod event;
 pub mod event_handler;
 pub mod sub_event_handler;
 pub mod eh_parent;
@@ -15,6 +16,7 @@ pub static IDCOUNTER: std::sync::atomic::AtomicUsize = std::sync::atomic::Atomic
 mod tests {
     use crate::{
         prelude::*,
+        event::Event,
         event_handler::EventHandler as EH,
         emitter::DefEmitter as DEm,
         listener::DefListener as DLi,
@@ -75,29 +77,29 @@ mod tests {
         println!("Event Handler: {:?}", eh);
         assert_eq!(eh.borrow().get_stack_len(), 0);
 
-        eh.borrow_mut().push_event(Some((em.clone(), E1)));
+        eh.borrow_mut().push_event(Some(Event::new(em.clone(), Some(E1))));
         println!("Event Handler: {:?}", eh);
 
         assert_eq!(eh.borrow().get_stack_len(), 1);
         assert_eq!(eh.borrow().peek_next_emitter().unwrap().borrow().get_id(), em.borrow().get_id());
-        assert_eq!(eh.borrow().peek_next_event().unwrap(), &E1);
+        assert_eq!(eh.borrow().peek_next_tag().unwrap(), E1);
 
-        eh.borrow_mut().push_events(Some(vec![(em.clone(), E3), (em.clone(), E5("A"))]));
+        eh.borrow_mut().push_events(Some(vec![Event::new(em.clone(), Some(E3)), Event::new(em.clone(), Some(E5("A")))]));
         println!("Event Handler: {:?}", eh);
 
         assert_eq!(eh.borrow().get_stack_len(), 3);
         assert_eq!(eh.borrow().peek_next_emitter().unwrap().borrow().get_id(), em.borrow().get_id());
-        assert_eq!(eh.borrow().peek_next_event().unwrap(), &E5("A"));
+        assert_eq!(eh.borrow().peek_next_tag(), Some(E5("A")));
 
         let next = eh.borrow_mut().pop_next();
         println!("Event Handler: {:?}", eh);
 
-        assert_eq!(next.as_ref().unwrap().0.borrow().get_id(), em.borrow().get_id());
-        assert_eq!(next.as_ref().unwrap().1, E5("A"));
+        assert_eq!(next.as_ref().unwrap().get_emitter().borrow().get_id(), em.borrow().get_id());
+        assert_eq!(next.as_ref().unwrap().get_tag(), Some(E5("A")));
 
         assert_eq!(eh.borrow().get_stack_len(), 2);
         assert_eq!(eh.borrow().peek_next_emitter().unwrap().borrow().get_id(), em.borrow().get_id());
-        assert_eq!(eh.borrow().peek_next_event().unwrap(), &E3);
+        assert_eq!(eh.borrow().peek_next_tag(), Some(E3));
         assert_eq!(eh.borrow().get_prev_event(), next.as_ref());
         println!("Hello");
     }

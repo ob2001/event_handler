@@ -1,34 +1,34 @@
 use std::{fmt::Debug, rc::Rc, cell::RefCell};
-use crate::prelude::*;
+use crate::{prelude::*, event::Event};
 use crate::IDCOUNTER;
 
-pub trait IListener<Ev: Event, I: Id>: Debug {
+pub trait IListener<T: Tag, I: Id>: Debug {
     // Return a view of of all events this listener
     // can be triggered by
-    fn get_triggers(&self) -> Vec<&Ev>;
+    fn get_trigger_tags(&self) -> Vec<&T>;
 
     // Contains logic on how to behave when any trigger/s
     // are broadcast to this listener.
     // May return any number of events in reaction.
-    fn on_triggers(&self, triggers: Vec<&(EmRC<Ev, I>, Ev)>);
+    fn on_triggers(&self, triggers: Vec<Event<T, I>>);
     fn get_id(&self) -> I;
 }
 
-impl<Ev: Event, I: Id> PartialEq for dyn IListener<Ev, I> {
+impl<T: Tag, I: Id> PartialEq for dyn IListener<T, I> {
     fn eq(&self, other: &Self) -> bool {
         self.get_id() == other.get_id()
     }
 }
 
-pub type LiRC<Ev, Id> = Rc<RefCell<dyn IListener<Ev, Id>>>;
+pub type LiRC<T, I> = Rc<RefCell<dyn IListener<T, I>>>;
 
 #[derive(Clone, PartialEq)]
-pub struct DefListener<Ev: Event> {
+pub struct DefListener<T: Tag> {
     id: usize,
-    triggers: Vec<Ev>,
+    triggers: Vec<T>,
 }
 
-impl<Ev: Event> Debug for DefListener<Ev> {
+impl<T: Tag> Debug for DefListener<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DefListener")
             .field("id", &self.id)
@@ -37,37 +37,37 @@ impl<Ev: Event> Debug for DefListener<Ev> {
     }
 }
 
-impl<Ev: Event> Into<LiRC<Ev, usize>> for DefListener<Ev> {
-    fn into(self) -> LiRC<Ev, usize> {
+impl<T: Tag> Into<LiRC<T, usize>> for DefListener<T> {
+    fn into(self) -> LiRC<T, usize> {
         use std::{rc::Rc, cell::RefCell};
         Rc::new(RefCell::new(self))
     }
 }
 
-impl<Ev: Event> DefListener<Ev> {
-    pub fn new(triggers: Vec<Ev>) -> Self {
+impl<T: Tag> DefListener<T> {
+    pub fn new(triggers: Vec<T>) -> Self {
         Self { triggers, id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst) }
     }
-    pub fn new_lirc(triggers: Vec<Ev>) -> Rc<RefCell<Self>> {
+    pub fn new_lirc(triggers: Vec<T>) -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(Self { triggers, id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst) }))
     }
 }
 
-impl<Ev: Event> DefListener<Ev> {
-    pub fn into_emli(self) -> LiRC<Ev, usize> {
+impl<T: Tag> DefListener<T> {
+    pub fn into_emli(self) -> LiRC<T, usize> {
         self.into()
     }
 }
 
-impl<Ev: Event> IListener<Ev, usize> for DefListener<Ev> {
-    fn on_triggers(&self, triggers: Vec<&(EmRC<Ev, usize>, Ev)>) {
+impl<T: Tag> IListener<T, usize> for DefListener<T> {
+    fn on_triggers(&self, triggers: Vec<Event<T, usize>>) {
         for t in triggers {
             match t {
                 _ => {}
             }
         }
     }
-    fn get_triggers(&self) -> Vec<&Ev> {
+    fn get_trigger_tags(&self) -> Vec<&T> {
         let mut ret = vec![];
         for t in &self.triggers {
             ret.push(t);
