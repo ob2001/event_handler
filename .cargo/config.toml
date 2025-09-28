@@ -1,0 +1,2 @@
+[alias]
+test-out = "test -- --show-output"
