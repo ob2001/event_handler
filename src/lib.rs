@@ -49,11 +49,10 @@ mod tests {
         assert_ne!(li1, li2);
         assert_ne!(co1, co2);
 
-        assert_eq!(eh1.borrow().get_stack().len(), 0);
+        assert_eq!(eh1.borrow().get_stack_len(), 0);
         assert_eq!(eh1.borrow().get_listeners().len(), 0);
 
         assert_eq!(em1.get_handlers()[0], eh1);
-
         assert_eq!(co1.get_handlers()[0], eh2);
 
         println!("{:?}", eh1.borrow());
@@ -73,27 +72,34 @@ mod tests {
         let eh = EH::<TEv, usize>::new_ehrc();
         let em = DEm::new_emrc(vec![eh.clone()]);
 
-        assert_eq!(eh.borrow().get_stack().len(), 0);
+        println!("Event Handler: {:?}", eh);
+        assert_eq!(eh.borrow().get_stack_len(), 0);
 
         eh.borrow_mut().push_event(Some((em.clone(), E1)));
+        println!("Event Handler: {:?}", eh);
 
-        assert_eq!(eh.borrow().get_stack().len(), 1);
+        assert_eq!(eh.borrow().get_stack_len(), 1);
         assert_eq!(eh.borrow().peek_next_emitter().unwrap().borrow().get_id(), em.borrow().get_id());
         assert_eq!(eh.borrow().peek_next_event().unwrap(), &E1);
 
         eh.borrow_mut().push_events(Some(vec![(em.clone(), E3), (em.clone(), E5("A"))]));
+        println!("Event Handler: {:?}", eh);
 
-        assert_eq!(eh.borrow().get_stack().len(), 3);
+        assert_eq!(eh.borrow().get_stack_len(), 3);
         assert_eq!(eh.borrow().peek_next_emitter().unwrap().borrow().get_id(), em.borrow().get_id());
         assert_eq!(eh.borrow().peek_next_event().unwrap(), &E5("A"));
 
         let next = eh.borrow_mut().pop_next();
+        println!("Event Handler: {:?}", eh);
+
         assert_eq!(next.as_ref().unwrap().0.borrow().get_id(), em.borrow().get_id());
         assert_eq!(next.as_ref().unwrap().1, E5("A"));
 
-        assert_eq!(eh.borrow().get_stack().len(), 2);
+        assert_eq!(eh.borrow().get_stack_len(), 2);
         assert_eq!(eh.borrow().peek_next_emitter().unwrap().borrow().get_id(), em.borrow().get_id());
         assert_eq!(eh.borrow().peek_next_event().unwrap(), &E3);
+        assert_eq!(eh.borrow().get_prev_event(), next.as_ref());
+        println!("Hello");
     }
 
     #[test]
