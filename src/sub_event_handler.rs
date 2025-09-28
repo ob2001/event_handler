@@ -142,7 +142,7 @@ impl<'a, P: EHParent<T, I> + Debug, T: Tag, I: Id> SubEventHandler<'a, P, T, I> 
         }
 
         for &p in &self.parents {
-            p.notify_parent(event.clone());
+            p.notify_parent(&event);
         }
     }
     pub fn broadcast_events(&mut self, events: Vec<Event<T, I>>) {

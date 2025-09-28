@@ -3,10 +3,6 @@ use crate::{prelude::*};
 use crate::IDCOUNTER;
 
 pub trait IEmitter<T: Tag, I: Id>: Debug {
-    // Cause emitter to emit events without regard
-    // for context.
-    // Implementation specific to each emitter.
-    // May return any number of events in reaction.
     fn add_handler(&mut self, parent: EHRc<T, I>);
     fn get_handlers(&self) -> Vec<EHRc<T, I>>;
     fn get_id(&self) -> I;
