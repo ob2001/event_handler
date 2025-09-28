@@ -2,7 +2,7 @@ use std::{fmt::Debug, rc::Rc, cell::RefCell};
 use crate::prelude::*;
 use crate::IDCOUNTER;
 
-pub trait IListener<Ev: Event, Id: PartialEq + Debug>: Debug {
+pub trait IListener<Ev: Event, I: Id>: Debug {
     // Return a view of of all events this listener
     // can be triggered by
     fn get_triggers(&self) -> Vec<&Ev>;
@@ -10,11 +10,11 @@ pub trait IListener<Ev: Event, Id: PartialEq + Debug>: Debug {
     // Contains logic on how to behave when any trigger/s
     // are broadcast to this listener.
     // May return any number of events in reaction.
-    fn on_triggers(&self, triggers: Vec<&Ev>);
-    fn get_id(&self) -> Id;
+    fn on_triggers(&self, triggers: Vec<&(EmRC<Ev, I>, Ev)>);
+    fn get_id(&self) -> I;
 }
 
-impl<Ev: Event, Id: PartialEq + Debug> PartialEq for dyn IListener<Ev, Id> {
+impl<Ev: Event, I: Id> PartialEq for dyn IListener<Ev, I> {
     fn eq(&self, other: &Self) -> bool {
         self.get_id() == other.get_id()
     }
@@ -60,7 +60,7 @@ impl<Ev: Event> DefListener<Ev> {
 }
 
 impl<Ev: Event> IListener<Ev, usize> for DefListener<Ev> {
-    fn on_triggers(&self, triggers: Vec<&Ev>) {
+    fn on_triggers(&self, triggers: Vec<&(EmRC<Ev, usize>, Ev)>) {
         for t in triggers {
             match t {
                 _ => {}

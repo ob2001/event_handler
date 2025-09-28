@@ -137,7 +137,7 @@ impl<'a, T: EHParent<Ev, I> + Debug, Ev: Event, I: Id> SubEventHandler<'a, T, Ev
 
         for li in self.get_listeners() {
             if li.borrow().get_triggers().contains(&&event.1) {
-                li.borrow().on_triggers(vec![&&event.1]);
+                li.borrow().on_triggers(vec![&&event]);
             }
         }
 

@@ -149,7 +149,7 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
 
         for li in self.get_listeners() {
             if li.borrow().get_triggers().contains(&&event.1) {
-                li.borrow().on_triggers(vec![&&event.1]);
+                li.borrow().on_triggers(vec![&&event]);
             }
         }
     }

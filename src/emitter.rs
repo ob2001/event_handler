@@ -7,10 +7,11 @@ pub trait IEmitter<Ev: Event, I: Id>: Debug {
     // for context.
     // Implementation specific to each emitter.
     // May return any number of events in reaction.
-    fn emit(&self) -> Option<Vec<Ev>>;
+    fn emit(&self) -> Option<Vec<(EmRC<Ev, I>, Ev)>>;
     fn add_handler(&mut self, parent: EHRc<Ev, I>);
     fn get_handlers(&self) -> Vec<EHRc<Ev, I>>;
     fn get_id(&self) -> I;
+    fn into_emrc(self) -> EmRC<Ev, I>;
 }
 
 impl<Ev: Event, I: Id> PartialEq for dyn IEmitter<Ev, I> {
@@ -52,14 +53,8 @@ impl<Ev: Event> DefEmitter<Ev> {
     }
 }
 
-impl<Ev: Event> DefEmitter<Ev> {
-    pub fn into_emrc(self) -> EmRC<Ev, usize> {
-        self.into()
-    }
-}
-
 impl<Ev: Event> IEmitter<Ev, usize> for DefEmitter<Ev>  {
-    fn emit(&self) -> Option<Vec<Ev>> {
+    fn emit(&self) -> Option<Vec<(EmRC<Ev, usize>, Ev)>> {
         // todo
         None
     }
@@ -71,5 +66,8 @@ impl<Ev: Event> IEmitter<Ev, usize> for DefEmitter<Ev>  {
     }
     fn get_id(&self) -> usize {
         self.id
+    }
+    fn into_emrc(self) -> EmRC<Ev, usize> {
+        self.into()
     }
 }
