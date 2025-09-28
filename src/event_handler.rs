@@ -62,14 +62,11 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
         self.id
     }
     pub fn push_event(&mut self, event: Option<(EmRC<Ev, I>, Ev)>) {
-        match event {
-            Some(e) => {
-                #[cfg(test)]
-                println!("Event pushed to stack: (Emitter id: {:?}, Event: {:?})", e.0.borrow().get_id(), e.1);
-
-                self.stack.push(e)
-            },
-            _ => {}
+        if let Some(e) = event {
+            #[cfg(test)]
+            println!("Event pushed to stack: (Emitter id: {:?}, Event: {:?})", e.0.borrow().get_id(), e.1);
+    
+            self.stack.push(e);
         }
     }
     pub fn push_events(&mut self, events: Option<Vec<(EmRC<Ev, I>, Ev)>>) {
@@ -115,27 +112,26 @@ impl<Ev: Event, I: Id> EventHandler<Ev, I> {
         }
     }
     pub fn pop_next(&mut self) -> Option<(EmRC<Ev, I>, Ev)> {
-        let ret = self.stack.pop();
-        #[cfg(test)]
-        println!("Event popped: {:?}", ret);
+        if let Some(ret) = self.stack.pop() {
+            self.prev_event = Some(ret.clone());
 
-        self.prev_event = ret.clone();
-        ret
+            #[cfg(test)]
+            println!("Event popped from stack (Emitter: {:?}, Event: {:?})", ret.0.borrow().get_id(), ret.1);
+
+            Some(ret)
+        } else {
+            None
+        }
     }
-    pub fn get_prev_event(&self) -> &Option<(EmRC<Ev, I>, Ev)> {
-        &self.prev_event
+    pub fn get_prev_event(&self) -> Option<&(EmRC<Ev, I>, Ev)> {
+        self.prev_event.as_ref()
     }
     pub fn consume_next_event(&mut self) {
-        let next = self.pop_next();
+        if let Some(next) = self.pop_next() {        
+            #[cfg(test)]
+            println!("Consumed event: {:?}", next);
 
-        match next {
-            Some(e) => {
-                #[cfg(test)]
-                println!("Consumed event: {:?}", e);
-
-                self.broadcast_event(e);
-            }
-            None => ()
+            self.broadcast_event(next);
         }
     }
     pub fn broadcast_event(&mut self, event: (EmRC<Ev, I>, Ev)) {

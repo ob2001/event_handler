@@ -1,7 +1,5 @@
 #![feature(trait_alias, type_alias_impl_trait)]
 
-use std::sync::atomic::AtomicUsize;
-
 pub mod prelude;
 
 pub mod event_handler;
@@ -11,15 +9,20 @@ pub mod emitter;
 pub mod listener;
 pub mod conversant;
 
-pub static IDCOUNTER: AtomicUsize = AtomicUsize::new(0);
+pub static IDCOUNTER: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 
 #[cfg(test)]
 mod tests {
-    use crate::prelude::*;
-    use crate::{event_handler::EventHandler as EH, emitter::DefEmitter as DEm, listener::DefListener as DLi, conversant::DefConversant as DCo};
+    use crate::{
+        prelude::*,
+        event_handler::EventHandler as EH,
+        emitter::DefEmitter as DEm,
+        listener::DefListener as DLi,
+        conversant::DefConversant as DCo
+    };
 
     #[derive(Debug, PartialEq, Copy, Clone)]
-    enum TEv {
+    enum TestEvents {
         E1,
         E2,
         E3,
@@ -30,7 +33,8 @@ mod tests {
     // *** Tests start here *** //
     #[test]
     fn empty_initializations() {
-        use TEv::*;
+        use TestEvents::{self as TEv, *};
+
         let eh1 = EH::<TEv, usize>::new_ehrc();
         let eh2 = EH::<TEv, usize>::new_ehrc();
         let em1 = DEm::new(vec![eh1.clone()]);
@@ -64,17 +68,32 @@ mod tests {
 
     #[test]
     fn stack_manipulation() {
+        use TestEvents::{self as TEv, *};
+        
         let eh = EH::<TEv, usize>::new_ehrc();
         let em = DEm::new_emrc(vec![eh.clone()]);
 
         assert_eq!(eh.borrow().get_stack().len(), 0);
 
-        eh.borrow_mut().push_event(Some((em.clone(), TEv::E1)));
+        eh.borrow_mut().push_event(Some((em.clone(), E1)));
 
         assert_eq!(eh.borrow().get_stack().len(), 1);
-
         assert_eq!(eh.borrow().peek_next_emitter().unwrap().borrow().get_id(), em.borrow().get_id());
-        assert_eq!(eh.borrow().peek_next_event().unwrap(), &TEv::E1);
+        assert_eq!(eh.borrow().peek_next_event().unwrap(), &E1);
+
+        eh.borrow_mut().push_events(Some(vec![(em.clone(), E3), (em.clone(), E5("A"))]));
+
+        assert_eq!(eh.borrow().get_stack().len(), 3);
+        assert_eq!(eh.borrow().peek_next_emitter().unwrap().borrow().get_id(), em.borrow().get_id());
+        assert_eq!(eh.borrow().peek_next_event().unwrap(), &E5("A"));
+
+        let next = eh.borrow_mut().pop_next();
+        assert_eq!(next.as_ref().unwrap().0.borrow().get_id(), em.borrow().get_id());
+        assert_eq!(next.as_ref().unwrap().1, E5("A"));
+
+        assert_eq!(eh.borrow().get_stack().len(), 2);
+        assert_eq!(eh.borrow().peek_next_emitter().unwrap().borrow().get_id(), em.borrow().get_id());
+        assert_eq!(eh.borrow().peek_next_event().unwrap(), &E3);
     }
 
     #[test]
