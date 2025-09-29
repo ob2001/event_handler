@@ -1,4 +1,4 @@
-use std::{fmt::Debug, rc::Rc, cell::RefCell};
+use std::{rc::Rc, cell::RefCell};
 use crate::prelude::*;
 use crate::{IDCOUNTER, event::Event, sub_event_handler::SubEventHandler};
 
@@ -138,7 +138,7 @@ impl<T: Tag, I: Id> EventHandler<T, I> {
         println!("EventHandler_{} broadcast {:?}", self.id, event);
 
         for li in self.get_listeners() {
-            if li.borrow().get_trigger_tags().contains(&&event.get_tag().expect("Untagged")) {
+            if li.borrow().get_triggers().contains(&&event.get_tag().expect("Untagged")) {
                 li.borrow().on_triggers(vec![event.clone()]);
             }
         }

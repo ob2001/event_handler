@@ -1,4 +1,3 @@
-use std::fmt::Debug;
 use crate::{prelude::*, event::Event};
 use crate::{IDCOUNTER, event_handler::EventHandler};
 
@@ -136,7 +135,7 @@ impl<'a, P: EHParent<T, I> + Debug, T: Tag, I: Id> SubEventHandler<'a, P, T, I> 
         println!("Broadcast event: {:?}", event);
 
         for li in self.get_listeners() {
-            if li.borrow().get_trigger_tags().contains(&&event.get_tag().expect("Untagged event")) {
+            if li.borrow().get_triggers().contains(&&event.get_tag().expect("Untagged event")) {
                 li.borrow().on_triggers(vec![event.clone()]);
             }
         }

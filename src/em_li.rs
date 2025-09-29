@@ -1,4 +1,3 @@
-use std::{fmt::Debug};
 use crate::{prelude::*, event::Event};
 use crate::{IDCOUNTER};
 
@@ -63,7 +62,7 @@ impl<T: Tag> IEmitter<T, usize> for DefEmLi<T> {
 }
 
 impl<T: Tag> IListener<T, usize> for DefEmLi<T>  {
-    fn get_trigger_tags(&self) -> Vec<&T> {
+    fn get_triggers(&self) -> Vec<&T> {
         let mut ret = vec![];
         for t in &self.triggers {
             ret.push(t);
