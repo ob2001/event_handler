@@ -2,8 +2,8 @@ use crate::{prelude::*};
 use crate::IDCOUNTER;
 
 pub trait IEmitter<T: Tag, I: Id> {
-    fn emit(&self) -> Result<(), &'static str>;
-    fn emit_to_handler_by_id(&self, handler_id: usize) -> Result<(), &'static str>;
+    fn emit(&self) -> Result<(), String>;
+    fn emit_to_handler_by_id(&self, handler_id: usize) -> Result<(), String>;
     fn add_handler(&mut self, handler: &EHRc<T, I>);
     fn get_handlers(&self) -> &Vec<EHRc<T, I>>;
     fn get_handler_by_id(&self, id: usize) -> Option<&EHRc<T, I>>;
@@ -52,7 +52,7 @@ impl<T: Tag> DefEmitter<T> {
 }
 
 impl<T: Tag> IEmitter<T, usize> for DefEmitter<T>  {
-    fn emit(&self) -> Result<(), &'static str> {
+    fn emit(&self) -> Result<(), String> {
         if self.handlers.len() > 0 {
             #[cfg(test)]
             println!("Emitter_{} emitted {:?} to {:?}", self.get_id(), self.def_tag, self.handlers[0].borrow());
@@ -60,10 +60,10 @@ impl<T: Tag> IEmitter<T, usize> for DefEmitter<T>  {
             self.handlers[0].borrow_mut().receive(self, self.def_tag);
             Ok(())
         } else {
-            Err("Emitter has no handlers")
+            Err(format!("Emitter_{} has no handlers", self.get_id()))
         }
     }
-    fn emit_to_handler_by_id(&self, handler_id: usize) -> Result<(), &'static str> {
+    fn emit_to_handler_by_id(&self, handler_id: usize) -> Result<(), String> {
         if let Some(h) = self.get_handler_by_id(handler_id) {
             #[cfg(test)]
             println!("Emitter_{} emitted {:?} to {:?}", self.get_id(), self.def_tag, h.borrow());
@@ -71,7 +71,7 @@ impl<T: Tag> IEmitter<T, usize> for DefEmitter<T>  {
             h.borrow_mut().receive(self, self.def_tag);
             Ok(())
         } else {
-            Err("Emitter has no such handler")
+            Err(format!("Emitter_{} has no handler with id {}", self.get_id(), handler_id))
         }
     }
     fn add_handler(&mut self, handler: &EHRc<T, usize>) {

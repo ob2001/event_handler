@@ -49,20 +49,20 @@ impl<T: Tag> PartialEq<dyn IEmitter<T, usize>> for DefEmLi<T> {
 }
 
 impl<T: Tag> IEmitter<T, usize> for DefEmLi<T> {
-    fn emit(&self) -> Result<(), &'static str> {
+    fn emit(&self) -> Result<(), String> {
         if self.handlers.len() > 0 {
             self.handlers[0].borrow_mut().receive(self, self.def_tag);
             Ok(())
         } else {
-            Err("Emitter has no handlers")
+            Err(format!("Emitter_{} has no handlers", <DefEmLi<T> as IEmitter<T, usize>>::get_id(&self)))
         }
     }
-    fn emit_to_handler_by_id(&self, handler_id: usize) -> Result<(), &'static str> {
+    fn emit_to_handler_by_id(&self, handler_id: usize) -> Result<(), String> {
         if let Some(h) = self.get_handler_by_id(handler_id) {
             h.borrow_mut().receive(self, self.def_tag);
             return Ok(())
         }
-        Err("Emitter has no such handler")
+        Err(format!("Emitter_{} has no handler with id {}", <DefEmLi<T> as IEmitter<T, usize>>::get_id(&self), handler_id))
     }
     fn add_handler(&mut self, handler: &EHRc<T, usize>) {
         self.handlers.push(handler.clone());
