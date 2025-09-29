@@ -1,15 +1,33 @@
 use crate::prelude::*;
 use crate::{IDCOUNTER, event::Event, sub_event_handler::SubEventHandler};
 
-pub trait Id = PartialEq + Debug + Clone;
+pub trait Id = PartialEq + Debug + Display + Clone;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct EventHandler<T: Tag, I: Id> {
     id: usize,
     stack: Vec<Event<T, I>>,
     prev_event: Option<Event<T, I>>,
     listeners: Vec<LiRC<T, I>>,
     emitters: Vec<EmRC<T, I>>,
+}
+
+impl<T: Tag, I: Id> Debug for EventHandler<T, I> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EventHandler")
+            .field("id", &self.id)
+            .field("stack", &self.stack)
+            .field("prev_event", &self.prev_event)
+            .field("listener ids", &self.listeners.iter().map(|l| l.borrow().get_id()).collect::<Vec<I>>())
+            .field("emitter ids", &self.emitters.iter().map(|e| e.borrow().get_id()).collect::<Vec<I>>())
+            .finish()
+    }
+}
+
+impl<T: Tag, I: Id> Display for EventHandler<T, I> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "EventHandler_{}", self.get_id())
+    }
 }
 
 pub type EHRc<T, I> = Rc<RefCell<EventHandler<T, I>>>;
@@ -57,7 +75,7 @@ impl<T: Tag, I: Id> EventHandler<T, I> {
     pub fn push_event(&mut self, event: Option<Event<T, I>>) {
         if let Some(e) = event {
             #[cfg(test)]
-            println!("EventHandler_{} pushed {:?} to stack", self.id, e);
+            println!("{} pushed an event to stack: {:?}", self, e);
     
             self.stack.push(e);
         }
@@ -82,6 +100,9 @@ impl<T: Tag, I: Id> EventHandler<T, I> {
         self.get_stack().iter().map(|e| e.get_emitter().clone()).collect()
     }
     pub fn add_emitter(&mut self, emitter: &EmRC<T, I>) {
+        #[cfg(test)]
+        println!("{} added an emitter: {:?}", self, emitter.borrow());
+
         self.emitters.push(emitter.clone())
     }
     pub fn get_emitters(&self) -> &Vec<EmRC<T, I>> {
@@ -95,19 +116,34 @@ impl<T: Tag, I: Id> EventHandler<T, I> {
         }
         None
     }
+    pub fn has_emitter(&self, emitter: &EmRC<T, I>) -> bool {
+        self.emitters.contains(emitter)
+    }
     pub fn add_listener(&mut self, listener: LiRC<T, I>) {
+        #[cfg(test)]
+        println!("{} added a listener: {:?}", self, listener.borrow());
+
         self.listeners.push(listener)
     }
     pub fn get_listeners(&self) -> &Vec<LiRC<T, I>> {
         &self.listeners
     }
+    pub fn get_listener_by_id(&self, listener_id: I) -> Option<LiRC<T, I>> {
+        for l in self.get_listeners() {
+            if l.borrow().get_id() == listener_id {
+                return Some(l.clone())
+            }
+        }
+        None
+    }
+    pub fn has_listener(&self, listener: &LiRC<T, I>) -> bool {
+        self.listeners.contains(listener)
+    }
     pub fn peek_next(&self) -> Option<&Event<T, I>> {
         #[cfg(test)]
         {
             if let Some(e) = self.stack.last() {
-                println!("EventHandler_{} peeked {:?} on stack", self.id, e);
-            } else {
-                println!("EventHandler_{} peeked None on stack", self.id);
+                println!("{} peeked next event on stack: {:?}", self, e);
             }
         }
 
@@ -132,7 +168,7 @@ impl<T: Tag, I: Id> EventHandler<T, I> {
             self.prev_event = Some(ret.clone());
 
             #[cfg(test)]
-            println!("EventHandler_{} popped {:?} from stack", self.id, ret);
+            println!("{} popped event from stack: {:?}", self, ret);
 
             Some(ret)
         } else {
@@ -144,23 +180,29 @@ impl<T: Tag, I: Id> EventHandler<T, I> {
     }
     pub fn receive(&mut self, emitter: &dyn IEmitter<T, I>, tag: Option<T>) {
         if let Some(em) = self.get_emitter_by_id(emitter.get_id()) {
-            self.push_event(Some(Event::new(em.clone(), tag)));
+            #[cfg(test)]
+            println!("{} received {:?} from {:?}", self, tag, em);
+
+            self.push_event(Some(Event::new(em, tag)));
         }
     }
     pub fn emit(&mut self, emitter: EmRC<T, I>, tag: T) {
+        #[cfg(test)]
+        println!("{} emitted {:?} from {:?}", self, tag, emitter);
+
         self.push_event(Some(Event::new(emitter.clone(), Some(tag))));
     }
     pub fn consume_next_event(&mut self) {
         if let Some(next) = self.pop_next() {        
             #[cfg(test)]
-            println!("EventHandler_{} consumed {:?}", self.id, next);
+            println!("{} consumed {:?}", self, next);
 
             self.broadcast_event(next);
         }
     }
     pub fn broadcast_event(&mut self, event: Event<T, I>) {
         #[cfg(test)]
-        println!("EventHandler_{} broadcast {:?}", self.id, event);
+        println!("{} broadcast {:?}", self, event);
 
         for li in self.get_listeners() {
             if li.borrow().get_triggers().contains(&&event.get_tag().expect("Untagged")) {

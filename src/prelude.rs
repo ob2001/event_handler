@@ -1,4 +1,4 @@
-pub(crate) use std::{fmt::Debug, rc::Rc, cell::RefCell};
+pub(crate) use std::{fmt::{Debug, Display}, rc::Rc, cell::RefCell};
 pub use crate::{
     event::Tag,
     event_handler::{Id, EHRc},

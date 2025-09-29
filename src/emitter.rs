@@ -1,7 +1,7 @@
 use crate::{prelude::*};
 use crate::IDCOUNTER;
 
-pub trait IEmitter<T: Tag, I: Id>: Debug {
+pub trait IEmitter<T: Tag, I: Id> {
     fn emit(&self) -> Result<(), &'static str>;
     fn emit_to_handler_by_id(&self, handler_id: usize) -> Result<(), &'static str>;
     fn add_handler(&mut self, handler: &EHRc<T, I>);
@@ -12,6 +12,15 @@ pub trait IEmitter<T: Tag, I: Id>: Debug {
     fn into_emrc(self) -> EmRC<T, I>;
 }
 
+impl<T: Tag, I: Id> Debug for dyn IEmitter<T, I> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Emitter")
+            .field("id", &self.get_id())
+            .field("handler ids", &self.get_handlers().iter().map(|h| h.borrow().get_id()).collect::<Vec<usize>>())
+            .finish()
+    }
+}
+
 impl<T: Tag, I: Id> PartialEq for dyn IEmitter<T, I> {
     fn eq(&self, other: &Self) -> bool {
         self.get_id() == other.get_id()
@@ -20,26 +29,15 @@ impl<T: Tag, I: Id> PartialEq for dyn IEmitter<T, I> {
 
 pub type EmRC<T, I> = Rc<RefCell<dyn IEmitter<T, I>>>;
 
-#[derive(Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct DefEmitter<T: Tag> {
     id: usize,
     handlers: Vec<EHRc<T, usize>>,
     def_tag: Option<T>,
 }
 
-impl<T: Tag> Debug for DefEmitter<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("DefEmitter")
-            .field("id", &self.id)
-            .field("handler ids", &self.handlers.iter().map(|h| h.borrow().get_id()).collect::<Vec<usize>>())
-            .field("def_tag", &self.def_tag)
-            .finish()
-    }
-}
-
 impl<T: Tag> Into<EmRC<T, usize>> for DefEmitter<T> {
     fn into(self) -> EmRC<T, usize> {
-        use std::{rc::Rc, cell::RefCell};
         Rc::new(RefCell::new(self))
     }
 }
@@ -56,6 +54,9 @@ impl<T: Tag> DefEmitter<T> {
 impl<T: Tag> IEmitter<T, usize> for DefEmitter<T>  {
     fn emit(&self) -> Result<(), &'static str> {
         if self.handlers.len() > 0 {
+            #[cfg(test)]
+            println!("Emitter_{} emitted {:?} to {:?}", self.get_id(), self.def_tag, self.handlers[0].borrow());
+
             self.handlers[0].borrow_mut().receive(self, self.def_tag);
             Ok(())
         } else {
@@ -64,6 +65,9 @@ impl<T: Tag> IEmitter<T, usize> for DefEmitter<T>  {
     }
     fn emit_to_handler_by_id(&self, handler_id: usize) -> Result<(), &'static str> {
         if let Some(h) = self.get_handler_by_id(handler_id) {
+            #[cfg(test)]
+            println!("Emitter_{} emitted {:?} to {:?}", self.get_id(), self.def_tag, h.borrow());
+
             h.borrow_mut().receive(self, self.def_tag);
             Ok(())
         } else {
@@ -72,7 +76,7 @@ impl<T: Tag> IEmitter<T, usize> for DefEmitter<T>  {
     }
     fn add_handler(&mut self, handler: &EHRc<T, usize>) {
         #[cfg(test)]
-        println!("Emitter {:?} added handler {:?}", self.get_id(), handler.borrow().get_id());
+        println!("{:?} added EventHandler_{}", self, handler.borrow().get_id());
 
         self.handlers.push(handler.clone());
     }
