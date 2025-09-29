@@ -1,7 +1,7 @@
 use crate::{prelude::*, event::Event};
 use crate::{IDCOUNTER};
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct DefEmLi<T: Tag> {
     id: usize,
     handlers: Vec<EHRc<T, usize>>,
@@ -11,9 +11,9 @@ pub struct DefEmLi<T: Tag> {
 
 impl<T: Tag> Debug for DefEmLi<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("DefConversant")
+        f.debug_struct("DefEmLi")
             .field("id", &self.id)
-            .field("handlers", &self.handlers.iter().map(|h| h.borrow().get_id()).collect::<Vec<usize>>())
+            .field("handler ids", &self.handlers.iter().map(|h| h.borrow().get_id()).collect::<Vec<usize>>())
             .field("triggers", &self.triggers)
             .field("def_tag", &self.def_tag)
             .finish()
@@ -30,12 +30,6 @@ impl<T: Tag> DefEmLi<T>  {
     }
 }
 
-impl<T: Tag> PartialEq for DefEmLi<T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-
 impl<T: Tag> PartialEq<dyn IListener<T, usize>> for DefEmLi<T> {
     fn eq(&self, other: &dyn IListener<T, usize>) -> bool {
         self.id == other.get_id()
@@ -48,13 +42,19 @@ impl<T: Tag> PartialEq<dyn IEmitter<T, usize>> for DefEmLi<T> {
     }
 }
 
+impl<T: Tag> Unique<usize> for DefEmLi<T> {
+    fn get_id(&self) -> usize {
+        self.id
+    }
+}
+
 impl<T: Tag> IEmitter<T, usize> for DefEmLi<T> {
     fn emit(&self) -> Result<(), String> {
         if self.handlers.len() > 0 {
             self.handlers[0].borrow_mut().receive(self, self.def_tag);
             Ok(())
         } else {
-            Err(format!("Emitter_{} has no handlers", <DefEmLi<T> as IEmitter<T, usize>>::get_id(&self)))
+            Err(format!("Emitter_{:?} has no handlers", self.get_id()))
         }
     }
     fn emit_to_handler_by_id(&self, handler_id: usize) -> Result<(), String> {
@@ -62,10 +62,18 @@ impl<T: Tag> IEmitter<T, usize> for DefEmLi<T> {
             h.borrow_mut().receive(self, self.def_tag);
             return Ok(())
         }
-        Err(format!("Emitter_{} has no handler with id {}", <DefEmLi<T> as IEmitter<T, usize>>::get_id(&self), handler_id))
+        Err(format!("Emitter_{:?} has no handler with id {}", self.get_id(), handler_id))
     }
-    fn add_handler(&mut self, handler: &EHRc<T, usize>) {
-        self.handlers.push(handler.clone());
+    fn add_handler(&mut self, handler: &EHRc<T, usize>) -> Result<(), String> {
+        if !self.has_handler(&handler) {
+            #[cfg(test)]
+            println!("{:?} added EventHandler_{}", self, handler.borrow());
+
+            self.handlers.push(handler.clone());
+            Ok(())
+        } else {
+            Err(format!(""))
+        }
     }
     fn get_handlers(&self) -> &Vec<EHRc<T, usize>> {
         &self.handlers
@@ -80,9 +88,6 @@ impl<T: Tag> IEmitter<T, usize> for DefEmLi<T> {
     }
     fn has_handler(&self, handler: &EHRc<T, usize>)  -> bool {
         self.handlers.contains(handler)
-    }
-    fn get_id(&self) -> usize {
-        self.id
     }
     fn into_emrc(self) -> EmRC<T, usize> {
         use std::{rc::Rc, cell::RefCell};
@@ -107,8 +112,5 @@ impl<T: Tag> IListener<T, usize> for DefEmLi<T>  {
                 _ => {}
             }
         }
-    }
-    fn get_id(&self) -> usize {
-        self.id
     }
 }

@@ -1,11 +1,10 @@
 use crate::{prelude::*, event::Event};
 use crate::IDCOUNTER;
 
-pub trait IListener<T: Tag, I: Id> {
+pub trait IListener<T: Tag, I: Id>: Unique<I> {
     fn get_triggers(&self) -> Vec<&T>;
     fn has_trigger(&self, tag: &T) -> bool;
     fn on_triggers(&self, triggers: Vec<Event<T, I>>);
-    fn get_id(&self) -> I;
 }
 
 impl<T: Tag, I: Id> Debug for dyn IListener<T, I> {
@@ -19,7 +18,7 @@ impl<T: Tag, I: Id> Debug for dyn IListener<T, I> {
 
 impl<T: Tag, I: Id> PartialEq for dyn IListener<T, I> {
     fn eq(&self, other: &Self) -> bool {
-        self.get_id() == other.get_id()
+        self as &dyn Unique<I> == other as &dyn Unique<I>
     }
 }
 
@@ -29,6 +28,12 @@ pub type LiRC<T, I> = Rc<RefCell<dyn IListener<T, I>>>;
 pub struct DefListener<T: Tag> {
     id: usize,
     triggers: Vec<T>,
+}
+
+impl<T: Tag> Unique<usize> for DefListener<T> {
+    fn get_id(&self) -> usize {
+        self.id
+    }
 }
 
 impl<T: Tag> Into<LiRC<T, usize>> for DefListener<T> {
@@ -69,8 +74,5 @@ impl<T: Tag> IListener<T, usize> for DefListener<T> {
                 _ => {}
             }
         }
-    }
-    fn get_id(&self) -> usize {
-        self.id
     }
 }

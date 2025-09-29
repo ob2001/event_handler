@@ -1,8 +1,6 @@
 use crate::prelude::*;
 use crate::{IDCOUNTER, event::Event, sub_event_handler::SubEventHandler};
 
-pub trait Id = PartialEq + Debug + Display + Clone;
-
 #[derive(Clone)]
 pub struct EventHandler<T: Tag, I: Id> {
     id: usize,
@@ -52,8 +50,8 @@ impl<T: Tag, I: Id> Into<EHRc<T, I>> for EventHandler<T, I> {
 }
 
 pub fn register_emitter<T: Tag, I: Id>(handler: &EHRc<T, I>, emitter: &EmRC<T, I>) {
-    handler.borrow_mut().add_emitter(&emitter);
-    emitter.borrow_mut().add_handler(&handler);
+    let _ = handler.borrow_mut().add_emitter(&emitter);
+    let _ = emitter.borrow_mut().add_handler(&handler);
 }
 
 impl<T: Tag, I: Id> EventHandler<T, I> {
@@ -99,11 +97,16 @@ impl<T: Tag, I: Id> EventHandler<T, I> {
     pub fn get_stack_emitters(&self) -> Vec<EmRC<T, I>> {
         self.get_stack().iter().map(|e| e.get_emitter().clone()).collect()
     }
-    pub fn add_emitter(&mut self, emitter: &EmRC<T, I>) {
-        #[cfg(test)]
-        println!("{} added an emitter: {:?}", self, emitter.borrow());
+    pub fn add_emitter(&mut self, emitter: &EmRC<T, I>) -> Result<(), String> {
+        if !self.has_emitter(&emitter) {
+            #[cfg(test)]
+            println!("{} added an emitter: {:?}", self, emitter.borrow());
 
-        self.emitters.push(emitter.clone())
+            self.emitters.push(emitter.clone());
+            Ok(())
+        } else {
+            Err(format!("EventHandler_{} already has {:?}", self, emitter.borrow()))
+        }
     }
     pub fn get_emitters(&self) -> &Vec<EmRC<T, I>> {
         &self.emitters
@@ -119,11 +122,16 @@ impl<T: Tag, I: Id> EventHandler<T, I> {
     pub fn has_emitter(&self, emitter: &EmRC<T, I>) -> bool {
         self.emitters.contains(emitter)
     }
-    pub fn add_listener(&mut self, listener: LiRC<T, I>) {
-        #[cfg(test)]
-        println!("{} added a listener: {:?}", self, listener.borrow());
+    pub fn add_listener(&mut self, listener: LiRC<T, I>) -> Result<(), String> {
+        if !self.has_listener(&listener) {
+            #[cfg(test)]
+            println!("{} added a listener: {:?}", self, listener.borrow());
 
-        self.listeners.push(listener)
+            self.listeners.push(listener);
+            Ok(())
+        } else {
+            Err(format!("EventHandler_{} already has {:?}", self, listener.borrow()))
+        }
     }
     pub fn get_listeners(&self) -> &Vec<LiRC<T, I>> {
         &self.listeners

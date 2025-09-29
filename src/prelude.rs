@@ -1,7 +1,8 @@
 pub(crate) use std::{fmt::{Debug, Display}, rc::Rc, cell::RefCell};
 pub use crate::{
     event::Tag,
-    event_handler::{Id, EHRc},
+    unique::{Id, Unique},
+    event_handler::EHRc,
     emitter::{IEmitter, EmRC},
     listener::{IListener, LiRC},
     eh_parent::EHParent,

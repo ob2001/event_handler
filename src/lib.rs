@@ -3,6 +3,7 @@
 pub mod prelude;
 
 pub mod event;
+pub mod unique;
 pub mod event_handler;
 pub mod sub_event_handler;
 pub mod eh_parent;
@@ -122,6 +123,11 @@ mod tests {
 
     #[test]
     fn listener_creation_and_addition() {
+        // todo
+    }
+
+    #[test]
+    fn emli_creation_and_addition() {
         // todo
     }
 

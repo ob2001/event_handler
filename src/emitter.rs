@@ -1,14 +1,13 @@
 use crate::{prelude::*};
 use crate::IDCOUNTER;
 
-pub trait IEmitter<T: Tag, I: Id> {
+pub trait IEmitter<T: Tag, I: Id>: Unique<I> {
     fn emit(&self) -> Result<(), String>;
     fn emit_to_handler_by_id(&self, handler_id: usize) -> Result<(), String>;
-    fn add_handler(&mut self, handler: &EHRc<T, I>);
+    fn add_handler(&mut self, handler: &EHRc<T, I>) -> Result<(), String>;
     fn get_handlers(&self) -> &Vec<EHRc<T, I>>;
     fn get_handler_by_id(&self, id: usize) -> Option<&EHRc<T, I>>;
     fn has_handler(&self, handler: &EHRc<T, I>)  -> bool;
-    fn get_id(&self) -> I;
     fn into_emrc(self) -> EmRC<T, I>;
 }
 
@@ -23,7 +22,7 @@ impl<T: Tag, I: Id> Debug for dyn IEmitter<T, I> {
 
 impl<T: Tag, I: Id> PartialEq for dyn IEmitter<T, I> {
     fn eq(&self, other: &Self) -> bool {
-        self.get_id() == other.get_id()
+        self as &dyn Unique<I> == other as &dyn Unique<I>
     }
 }
 
@@ -39,6 +38,12 @@ pub struct DefEmitter<T: Tag> {
 impl<T: Tag> Into<EmRC<T, usize>> for DefEmitter<T> {
     fn into(self) -> EmRC<T, usize> {
         Rc::new(RefCell::new(self))
+    }
+}
+
+impl<T: Tag> Unique<usize> for DefEmitter<T> {
+    fn get_id(&self) -> usize {
+        self.id
     }
 }
 
@@ -74,11 +79,16 @@ impl<T: Tag> IEmitter<T, usize> for DefEmitter<T>  {
             Err(format!("Emitter_{} has no handler with id {}", self.get_id(), handler_id))
         }
     }
-    fn add_handler(&mut self, handler: &EHRc<T, usize>) {
-        #[cfg(test)]
-        println!("{:?} added EventHandler_{}", self, handler.borrow().get_id());
+    fn add_handler(&mut self, handler: &EHRc<T, usize>) -> Result<(), String> {
+        if !self.has_handler(&handler) {
+            #[cfg(test)]
+            println!("{:?} added EventHandler_{}", self, handler.borrow());
 
-        self.handlers.push(handler.clone());
+            self.handlers.push(handler.clone());
+            Ok(())
+        } else {
+            Err(format!("Emitter_{:?} already has {:?}", self.id, handler.borrow()))
+        }
     }
     fn get_handlers(&self) -> &Vec<EHRc<T, usize>> {
         &self.handlers
@@ -93,9 +103,6 @@ impl<T: Tag> IEmitter<T, usize> for DefEmitter<T>  {
     }
     fn has_handler(&self, handler: &EHRc<T, usize>)  -> bool {
         self.handlers.contains(handler)
-    }
-    fn get_id(&self) -> usize {
-        self.id
     }
     fn into_emrc(self) -> EmRC<T, usize> {
         self.into()
