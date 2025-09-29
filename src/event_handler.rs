@@ -9,6 +9,7 @@ pub struct EventHandler<T: Tag, I: Id> {
     stack: Vec<Event<T, I>>,
     prev_event: Option<Event<T, I>>,
     listeners: Vec<LiRC<T, I>>,
+    emitters: Vec<EmRC<T, I>>,
 }
 
 pub type EHRc<T, I> = Rc<RefCell<EventHandler<T, I>>>;
@@ -32,13 +33,19 @@ impl<T: Tag, I: Id> Into<EHRc<T, I>> for EventHandler<T, I> {
     }
 }
 
+pub fn register_emitter<T: Tag, I: Id>(handler: &EHRc<T, I>, emitter: &EmRC<T, I>) {
+    handler.borrow_mut().add_emitter(&emitter);
+    emitter.borrow_mut().add_handler(&handler);
+}
+
 impl<T: Tag, I: Id> EventHandler<T, I> {
     pub fn new() -> Self {
         EventHandler { 
             id: IDCOUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
             stack: Vec::new(),
             prev_event: None,
-            listeners: Vec::new()
+            listeners: Vec::new(),
+            emitters: Vec::new(),
         }
     }
     pub fn new_ehrc() -> Rc<RefCell<Self>> {
@@ -73,6 +80,20 @@ impl<T: Tag, I: Id> EventHandler<T, I> {
     }
     pub fn get_stack_emitters(&self) -> Vec<EmRC<T, I>> {
         self.get_stack().iter().map(|e| e.get_emitter().clone()).collect()
+    }
+    pub fn add_emitter(&mut self, emitter: &EmRC<T, I>) {
+        self.emitters.push(emitter.clone())
+    }
+    pub fn get_emitters(&self) -> &Vec<EmRC<T, I>> {
+        &self.emitters
+    }
+    pub fn get_emitter_by_id(&self, emitter_id: I) -> Option<EmRC<T, I>> {
+        for e in self.get_emitters() {
+            if e.borrow().get_id() == emitter_id {
+                return Some(e.clone())
+            }
+        }
+        None
     }
     pub fn add_listener(&mut self, listener: LiRC<T, I>) {
         self.listeners.push(listener)
@@ -120,6 +141,11 @@ impl<T: Tag, I: Id> EventHandler<T, I> {
     }
     pub fn get_prev_event(&self) -> Option<&Event<T, I>> {
         self.prev_event.as_ref()
+    }
+    pub fn receive(&mut self, emitter: &dyn IEmitter<T, I>, tag: Option<T>) {
+        if let Some(em) = self.get_emitter_by_id(emitter.get_id()) {
+            self.push_event(Some(Event::new(em.clone(), tag)));
+        }
     }
     pub fn emit(&mut self, emitter: EmRC<T, I>, tag: T) {
         self.push_event(Some(Event::new(emitter.clone(), Some(tag))));
