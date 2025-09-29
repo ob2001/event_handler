@@ -1,3 +1,4 @@
+pub use std::fmt::Debug;
 pub use crate::{
     event::Tag,
     event_handler::{Id, EHRc},
