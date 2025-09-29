@@ -1,12 +1,16 @@
-use std::fmt::Debug;
-use crate::{prelude::*};
+use crate::prelude::*;
 
 pub trait Tag = Debug + PartialEq + Copy + 'static;
 
-#[derive(Clone)]
 pub struct Event<T: Tag, I: Id> {
     emitter: EmRC<T, I>,
     tag: Option<T>,
+}
+
+impl<T: Tag, I: Id> Clone for Event<T, I> {
+    fn clone(&self) -> Self {
+        Event { emitter: self.emitter.clone(), tag: self.tag }
+    }
 }
 
 impl<T: Tag, I: Id> Debug for Event<T, I> {
