@@ -1,15 +1,10 @@
-use std::{fmt::Debug, rc::Rc, cell::RefCell};
+use std::{rc::Rc, cell::RefCell};
 use crate::{prelude::*, event::Event};
 use crate::IDCOUNTER;
 
 pub trait IListener<T: Tag, I: Id>: Debug {
-    // Return a view of of all events this listener
-    // can be triggered by
-    fn get_trigger_tags(&self) -> Vec<&T>;
-
-    // Contains logic on how to behave when any trigger/s
-    // are broadcast to this listener.
-    // May return any number of events in reaction.
+    fn get_triggers(&self) -> Vec<&T>;
+    fn has_trigger(&self, tag: &T) -> bool;
     fn on_triggers(&self, triggers: Vec<Event<T, I>>);
     fn get_id(&self) -> I;
 }
@@ -60,19 +55,22 @@ impl<T: Tag> DefListener<T> {
 }
 
 impl<T: Tag> IListener<T, usize> for DefListener<T> {
+    fn get_triggers(&self) -> Vec<&T> {
+        let mut ret = vec![];
+        for t in &self.triggers {
+            ret.push(t);
+        }
+        ret
+    }
+    fn has_trigger(&self, tag: &T) -> bool {
+        self.triggers.contains(tag)
+    }
     fn on_triggers(&self, triggers: Vec<Event<T, usize>>) {
         for t in triggers {
             match t {
                 _ => {}
             }
         }
-    }
-    fn get_trigger_tags(&self) -> Vec<&T> {
-        let mut ret = vec![];
-        for t in &self.triggers {
-            ret.push(t);
-        }
-        ret
     }
     fn get_id(&self) -> usize {
         self.id
