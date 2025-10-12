@@ -51,6 +51,18 @@ mod tests {
         assert_ne!(em1, em2);
         assert_ne!(li1, li2);
         assert_ne!(emli1, emli2);
+        assert!(!(em1.clone() as Rc<RefCell<dyn Unique<usize>>> == li1.clone() as Rc<RefCell<dyn Unique<usize>>>));
+        assert!(!(em1.clone() as Rc<RefCell<dyn Unique<usize>>> == li2.clone() as Rc<RefCell<dyn Unique<usize>>>));
+        assert!(!(em1.clone() as Rc<RefCell<dyn Unique<usize>>> == Rc::new(RefCell::new(emli1.clone())) as Rc<RefCell<dyn Unique<usize>>>));
+        assert!(!(em1.clone() as Rc<RefCell<dyn Unique<usize>>> == Rc::new(RefCell::new(emli2.clone())) as Rc<RefCell<dyn Unique<usize>>>));
+        assert!(!(em2.clone() as Rc<RefCell<dyn Unique<usize>>> == li1.clone() as Rc<RefCell<dyn Unique<usize>>>));
+        assert!(!(em2.clone() as Rc<RefCell<dyn Unique<usize>>> == li2.clone() as Rc<RefCell<dyn Unique<usize>>>));
+        assert!(!(em2.clone() as Rc<RefCell<dyn Unique<usize>>> == Rc::new(RefCell::new(emli1.clone())) as Rc<RefCell<dyn Unique<usize>>>));
+        assert!(!(em2.clone() as Rc<RefCell<dyn Unique<usize>>> == Rc::new(RefCell::new(emli2.clone())) as Rc<RefCell<dyn Unique<usize>>>));
+        assert!(!(li1.clone() as Rc<RefCell<dyn Unique<usize>>> == Rc::new(RefCell::new(emli1.clone())) as Rc<RefCell<dyn Unique<usize>>>));
+        assert!(!(li1.clone() as Rc<RefCell<dyn Unique<usize>>> == Rc::new(RefCell::new(emli2.clone())) as Rc<RefCell<dyn Unique<usize>>>));
+        assert!(!(li2.clone() as Rc<RefCell<dyn Unique<usize>>> == Rc::new(RefCell::new(emli1.clone())) as Rc<RefCell<dyn Unique<usize>>>));
+        assert!(!(li2.clone() as Rc<RefCell<dyn Unique<usize>>> == Rc::new(RefCell::new(emli2.clone())) as Rc<RefCell<dyn Unique<usize>>>));
 
         assert_eq!(eh1.borrow().get_stack_len(), 0);
         assert_eq!(eh1.borrow().get_listeners().len(), 0);
