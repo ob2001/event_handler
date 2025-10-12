@@ -3,13 +3,12 @@
 pub mod prelude;
 
 pub mod event;
-pub mod unique;
+pub mod emit_obj;
 pub mod event_handler;
 pub mod sub_event_handler;
 pub mod eh_parent;
-pub mod emitter;
+pub mod def_emitter;
 pub mod listener;
-pub mod em_li;
 
 pub static IDCOUNTER: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 
@@ -19,9 +18,8 @@ mod tests {
         prelude::*,
         event::Event,
         event_handler::EventHandler as EH,
-        emitter::DefEmitter as DEm,
+        def_emitter::DefEmitter as DEm,
         listener::DefListener as DLi,
-        em_li::DefEmLi as DEmLi
     };
 
     #[derive(Debug, PartialEq, Copy, Clone)]
@@ -36,40 +34,32 @@ mod tests {
     // *** Tests start here *** //
     #[test]
     fn empty_initializations() {
+        use itertools::Itertools;
         use TestTags::{self, *};
 
         let eh1 = EH::<TestTags, usize>::new_ehrc();
         let eh2 = EH::<TestTags, usize>::new_ehrc();
-        let em1 = DEm::new_emrc(vec![eh1.clone()], None);
-        let em2 = DEm::new_emrc(vec![], None);
+        let em1 = DEm::<TestTags>::new_emrc(None);
+        let em2 = DEm::<TestTags>::new_emrc(None);
         let li1 = DLi::new_lirc(vec![T1, T2, T3, T4(3), T5("Hi")]);
         let li2 = DLi::new_lirc(vec![]);
-        let emli1 = DEmLi::<TestTags>::new(vec![eh2.clone()], None, None);
-        let emli2 = DEmLi::<TestTags>::new(vec![], Some(vec![T1, T5("Bye")]), None);
+
+        let uniques = vec![em1.borrow().as_uqrc(), em2.borrow().as_uqrc(), li1.borrow().as_uqrc(), li2.borrow().as_uqrc()];
 
         assert_ne!(eh1, eh2);
         assert_ne!(em1, em2);
         assert_ne!(li1, li2);
-        assert_ne!(emli1, emli2);
-        assert!(!(em1.clone() as Rc<RefCell<dyn Unique<usize>>> == li1.clone() as Rc<RefCell<dyn Unique<usize>>>));
-        assert!(!(em1.clone() as Rc<RefCell<dyn Unique<usize>>> == li2.clone() as Rc<RefCell<dyn Unique<usize>>>));
-        assert!(!(em1.clone() as Rc<RefCell<dyn Unique<usize>>> == Rc::new(RefCell::new(emli1.clone())) as Rc<RefCell<dyn Unique<usize>>>));
-        assert!(!(em1.clone() as Rc<RefCell<dyn Unique<usize>>> == Rc::new(RefCell::new(emli2.clone())) as Rc<RefCell<dyn Unique<usize>>>));
-        assert!(!(em2.clone() as Rc<RefCell<dyn Unique<usize>>> == li1.clone() as Rc<RefCell<dyn Unique<usize>>>));
-        assert!(!(em2.clone() as Rc<RefCell<dyn Unique<usize>>> == li2.clone() as Rc<RefCell<dyn Unique<usize>>>));
-        assert!(!(em2.clone() as Rc<RefCell<dyn Unique<usize>>> == Rc::new(RefCell::new(emli1.clone())) as Rc<RefCell<dyn Unique<usize>>>));
-        assert!(!(em2.clone() as Rc<RefCell<dyn Unique<usize>>> == Rc::new(RefCell::new(emli2.clone())) as Rc<RefCell<dyn Unique<usize>>>));
-        assert!(!(li1.clone() as Rc<RefCell<dyn Unique<usize>>> == Rc::new(RefCell::new(emli1.clone())) as Rc<RefCell<dyn Unique<usize>>>));
-        assert!(!(li1.clone() as Rc<RefCell<dyn Unique<usize>>> == Rc::new(RefCell::new(emli2.clone())) as Rc<RefCell<dyn Unique<usize>>>));
-        assert!(!(li2.clone() as Rc<RefCell<dyn Unique<usize>>> == Rc::new(RefCell::new(emli1.clone())) as Rc<RefCell<dyn Unique<usize>>>));
-        assert!(!(li2.clone() as Rc<RefCell<dyn Unique<usize>>> == Rc::new(RefCell::new(emli2.clone())) as Rc<RefCell<dyn Unique<usize>>>));
+
+        let mut comps = 0;
+        for p in Itertools::combinations(uniques.iter(), 2) {
+            println!("{:?} ?= {:?}", p[0], p[1]);
+            assert_ne!(p[0], p[1]);
+            comps += 1;
+        }
+        println!("Comparisons made: {}", comps);
 
         assert_eq!(eh1.borrow().get_stack_len(), 0);
         assert_eq!(eh1.borrow().get_listeners().len(), 0);
-
-        assert!(em1.borrow().has_handler(&eh1));
-        assert!(emli1.has_handler(&eh2));
-        assert!(emli2.has_trigger(&T1));
 
         println!("{:?}", eh1);
         println!("{:?}", eh2);
@@ -77,8 +67,6 @@ mod tests {
         println!("{:?}", em2);
         println!("{:?}", li1);
         println!("{:?}", li2);
-        println!("{:?}", emli1);
-        println!("{:?}", emli2);
     }
 
     #[test]
@@ -86,7 +74,7 @@ mod tests {
         use TestTags::{self, *};
         
         let eh = EH::<TestTags, usize>::new_ehrc();
-        let em = DEm::new_emrc(vec![eh.clone()], None);
+        let em = DEm::<TestTags>::new_emrc(None);
 
         println!("{:?}", eh.borrow());
         assert_eq!(eh.borrow().get_stack_len(), 0);
@@ -119,15 +107,12 @@ mod tests {
 
     #[test]
     fn emitter_creation_and_addition() {
-        use crate::event_handler::register_emitter;
         use TestTags::{self, *};
         let eh = EH::<TestTags, usize>::new_ehrc();
-        let em = DEm::<TestTags>::new_emrc(vec![], Some(T1));
+        let em = DEm::new_emrc(Some(T1));
 
         println!("{:?}", eh.borrow());
         println!("{:?}", em.borrow());
-
-        register_emitter(&eh, &(em.clone() as EmRC<TestTags, usize>));
 
         println!("{:?}", eh.borrow());
         println!("{:?}", em.borrow());

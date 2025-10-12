@@ -3,7 +3,7 @@ use crate::prelude::*;
 pub trait Tag = Debug + PartialEq + Copy + 'static;
 
 pub struct Event<T: Tag, I: Id> {
-    emitter: EmRC<T, I>,
+    emitter: UqRC<I>,
     tag: Option<T>,
 }
 
@@ -16,7 +16,7 @@ impl<T: Tag, I: Id> Clone for Event<T, I> {
 impl<T: Tag, I: Id> Debug for Event<T, I> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Event")
-            .field("emitter id", &self.emitter.borrow().get_id())
+            .field("EmitObj id", &self.emitter.borrow().get_id())
             .field("tag", &self.tag)
             .finish()
     }
@@ -29,10 +29,10 @@ impl<T: Tag, I: Id> PartialEq for Event<T, I> {
 }
 
 impl<'a, T: Tag, I: Id> Event<T, I> {
-    pub fn new(emitter: EmRC<T, I>, tag: Option<T>) -> Self {
+    pub fn new(emitter: UqRC<I>, tag: Option<T>) -> Self {
         Self { emitter, tag }
     }
-    pub fn get_emitter(&self) -> EmRC<T, I> {
+    pub fn get_emitter(&self) -> UqRC<I> {
         self.emitter.clone()
     }
     pub fn get_tag(&self) -> Option<T> {

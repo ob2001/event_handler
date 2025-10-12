@@ -1,13 +1,13 @@
 use crate::prelude::*;
-use crate::{IDCOUNTER, event::Event, sub_event_handler::SubEventHandler};
+use crate::{event::Event, sub_event_handler::SubEventHandler, IDCOUNTER};
 
+///
 #[derive(Clone)]
 pub struct EventHandler<T: Tag, I: Id> {
     id: usize,
     stack: Vec<Event<T, I>>,
     prev_event: Option<Event<T, I>>,
     listeners: Vec<LiRC<T, I>>,
-    emitters: Vec<EmRC<T, I>>,
 }
 
 impl<T: Tag, I: Id> Debug for EventHandler<T, I> {
@@ -17,7 +17,6 @@ impl<T: Tag, I: Id> Debug for EventHandler<T, I> {
             .field("stack", &self.stack)
             .field("prev_event", &self.prev_event)
             .field("listener ids", &self.listeners.iter().map(|l| l.borrow().get_id()).collect::<Vec<I>>())
-            .field("emitter ids", &self.emitters.iter().map(|e| e.borrow().get_id()).collect::<Vec<I>>())
             .finish()
     }
 }
@@ -49,11 +48,6 @@ impl<T: Tag, I: Id> Into<EHRc<T, I>> for EventHandler<T, I> {
     }
 }
 
-pub fn register_emitter<T: Tag, I: Id>(handler: &EHRc<T, I>, emitter: &EmRC<T, I>) {
-    let _ = handler.borrow_mut().add_emitter(&emitter);
-    let _ = emitter.borrow_mut().add_handler(&handler);
-}
-
 impl<T: Tag, I: Id> EventHandler<T, I> {
     pub fn new() -> Self {
         EventHandler { 
@@ -61,11 +55,16 @@ impl<T: Tag, I: Id> EventHandler<T, I> {
             stack: Vec::new(),
             prev_event: None,
             listeners: Vec::new(),
-            emitters: Vec::new(),
         }
     }
     pub fn new_ehrc() -> Rc<RefCell<Self>> {
         EventHandler::new().into()
+    }
+    pub fn as_ehrc(&self) -> EHRc<T, I> {
+        self.clone().into()
+    }
+    pub fn into_ehrc(self) -> EHRc<T, I> {
+        self.into()
     }
     pub fn get_id(&self) -> usize {
         self.id
@@ -94,33 +93,11 @@ impl<T: Tag, I: Id> EventHandler<T, I> {
     pub fn get_stack_tags(&self) -> Vec<Option<T>> {
         self.get_stack().iter().map(|e| e.get_tag()).collect()
     }
-    pub fn get_stack_emitters(&self) -> Vec<EmRC<T, I>> {
+    pub fn get_stack_emitters(&self) -> Vec<UqRC<I>> {
         self.get_stack().iter().map(|e| e.get_emitter().clone()).collect()
     }
-    pub fn add_emitter(&mut self, emitter: &EmRC<T, I>) -> Result<(), String> {
-        if !self.has_emitter(&emitter) {
-            #[cfg(test)]
-            println!("{} added an emitter: {:?}", self, emitter.borrow());
-
-            self.emitters.push(emitter.clone());
-            Ok(())
-        } else {
-            Err(format!("EventHandler_{} already has {:?}", self, emitter.borrow()))
-        }
-    }
-    pub fn get_emitters(&self) -> &Vec<EmRC<T, I>> {
-        &self.emitters
-    }
-    pub fn get_emitter_by_id(&self, emitter_id: I) -> Option<EmRC<T, I>> {
-        for e in self.get_emitters() {
-            if e.borrow().get_id() == emitter_id {
-                return Some(e.clone())
-            }
-        }
-        None
-    }
-    pub fn has_emitter(&self, emitter: &EmRC<T, I>) -> bool {
-        self.emitters.contains(emitter)
+    pub fn stack_has_emitter(&self, emitter: &UqRC<I>) -> bool {
+        self.get_stack_emitters().contains(emitter)
     }
     pub fn add_listener(&mut self, listener: LiRC<T, I>) -> Result<(), String> {
         if !self.has_listener(&listener) {
@@ -164,7 +141,7 @@ impl<T: Tag, I: Id> EventHandler<T, I> {
             None
         }
     }
-    pub fn peek_next_emitter(&self) -> Option<EmRC<T, I>> {
+    pub fn peek_next_emitter(&self) -> Option<UqRC<I>> {
         if let Some(e) = self.peek_next() {
             Some(e.get_emitter())
         } else {
@@ -186,15 +163,10 @@ impl<T: Tag, I: Id> EventHandler<T, I> {
     pub fn get_prev_event(&self) -> Option<&Event<T, I>> {
         self.prev_event.as_ref()
     }
-    pub fn receive(&mut self, emitter: &dyn IEmitter<T, I>, tag: Option<T>) {
-        if let Some(em) = self.get_emitter_by_id(emitter.get_id()) {
-            #[cfg(test)]
-            println!("{} received {:?} from {:?}", self, tag, em);
-
-            self.push_event(Some(Event::new(em, tag)));
-        }
+    pub fn receive(&mut self, emitter: UqRC<I>, tag: Option<T>) {
+        self.push_event(Some(Event::new(emitter, tag)));
     }
-    pub fn emit(&mut self, emitter: EmRC<T, I>, tag: T) {
+    pub fn emit(&mut self, emitter: UqRC<I>, tag: T) {
         #[cfg(test)]
         println!("{} emitted {:?} from {:?}", self, tag, emitter);
 
