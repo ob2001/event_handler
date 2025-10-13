@@ -93,10 +93,10 @@ impl<T: Tag, I: Id> EventHandler<T, I> {
     pub fn get_stack_tags(&self) -> Vec<Option<T>> {
         self.get_stack().iter().map(|e| e.get_tag()).collect()
     }
-    pub fn get_stack_emitters(&self) -> Vec<UqRC<I>> {
+    pub fn get_stack_emitters(&self) -> Vec<EmRC<I>> {
         self.get_stack().iter().map(|e| e.get_emitter().clone()).collect()
     }
-    pub fn stack_has_emitter(&self, emitter: &UqRC<I>) -> bool {
+    pub fn stack_has_emitter(&self, emitter: &EmRC<I>) -> bool {
         self.get_stack_emitters().contains(emitter)
     }
     pub fn add_listener(&mut self, listener: LiRC<T, I>) -> Result<(), String> {
@@ -141,7 +141,7 @@ impl<T: Tag, I: Id> EventHandler<T, I> {
             None
         }
     }
-    pub fn peek_next_emitter(&self) -> Option<UqRC<I>> {
+    pub fn peek_next_emitter(&self) -> Option<EmRC<I>> {
         if let Some(e) = self.peek_next() {
             Some(e.get_emitter())
         } else {
@@ -163,10 +163,10 @@ impl<T: Tag, I: Id> EventHandler<T, I> {
     pub fn get_prev_event(&self) -> Option<&Event<T, I>> {
         self.prev_event.as_ref()
     }
-    pub fn receive(&mut self, emitter: UqRC<I>, tag: Option<T>) {
+    pub fn receive(&mut self, emitter: EmRC<I>, tag: Option<T>) {
         self.push_event(Some(Event::new(emitter, tag)));
     }
-    pub fn emit(&mut self, emitter: UqRC<I>, tag: T) {
+    pub fn emit(&mut self, emitter: EmRC<I>, tag: T) {
         #[cfg(test)]
         println!("{} emitted {:?} from {:?}", self, tag, emitter);
 

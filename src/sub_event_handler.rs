@@ -77,7 +77,7 @@ impl<'a, P: EHParent<T, I> + Debug, T: Tag, I: Id> SubEventHandler<'a, P, T, I> 
     pub fn get_stack_events(&self) -> Vec<T> {
         self.get_stack().into_iter().map(|e| e.get_tag().expect("Untagged event")).collect()
     }
-    pub fn get_stack_emitters(&self) -> Vec<UqRC<I>> {
+    pub fn get_stack_emitters(&self) -> Vec<EmRC<I>> {
         self.get_stack().into_iter().map(|e| e.get_emitter()).collect()
     }
     pub fn add_listener(&mut self, listener: LiRC<T, I>) {
@@ -99,7 +99,7 @@ impl<'a, P: EHParent<T, I> + Debug, T: Tag, I: Id> SubEventHandler<'a, P, T, I> 
             None
         }
     }
-    pub fn peek_next_emitter(&self) -> Option<UqRC<I>> {
+    pub fn peek_next_emitter(&self) -> Option<EmRC<I>> {
         if let Some(e) = self.peek_next() {
             Some(e.get_emitter())
         } else {

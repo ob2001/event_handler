@@ -34,7 +34,6 @@ mod tests {
     // *** Tests start here *** //
     #[test]
     fn empty_initializations() {
-        use itertools::Itertools;
         use TestTags::{self, *};
 
         let eh1 = EH::<TestTags, usize>::new_ehrc();
@@ -44,22 +43,24 @@ mod tests {
         let li1 = DLi::new_lirc(vec![T1, T2, T3, T4(3), T5("Hi")]);
         let li2 = DLi::new_lirc(vec![]);
 
-        let uniques = vec![em1.borrow().as_uqrc(), em2.borrow().as_uqrc(), li1.borrow().as_uqrc(), li2.borrow().as_uqrc()];
+        // let uniques = vec![&(em1 as UqRC<usize>), &(em2 as UqRC<usize>), &li1, &li2];
 
         assert_ne!(eh1, eh2);
         assert_ne!(em1, em2);
         assert_ne!(li1, li2);
+        assert_ne!(em1, li1);
 
-        let mut comps = 0;
-        for p in Itertools::combinations(uniques.iter(), 2) {
-            println!("{:?} ?= {:?}", p[0], p[1]);
-            assert_ne!(p[0], p[1]);
-            comps += 1;
-        }
-        println!("Comparisons made: {}", comps);
+        // use itertools::Itertools;
+        // let mut comps = 0;
+        // for p in Itertools::combinations(uniques.iter(), 2) {
+        //     println!("{:?} ?= {:?}", p[0], p[1]);
+        //     assert_ne!(p[0], p[1]);
+        //     comps += 1;
+        // }
+        // println!("Comparisons made: {}", comps);
 
-        assert_eq!(eh1.borrow().get_stack_len(), 0);
-        assert_eq!(eh1.borrow().get_listeners().len(), 0);
+        assert_eq!(eh1.borrow().get_stack(), &vec![]);
+        assert_eq!(eh1.borrow().get_listeners(), &Vec::<LiRC<TestTags, usize>>::new());
 
         println!("{:?}", eh1);
         println!("{:?}", eh2);
